@@ -1,10 +1,10 @@
 from django.urls import path, include
 from .views import (
-    GameApiView,
-    MatchApiView,
+    PlayerList,
+    PlayerDetail,
 )
 
 urlpatterns = [
-    path('game', GameApiView.as_view()),
-    path('match', MatchApiView.as_view()),
+    path('player/', PlayerList.as_view()),
+    path('player/<int:discord_id>/', PlayerDetail.as_view()),
 ]
