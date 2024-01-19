@@ -5,6 +5,7 @@ from .models import (
     Game,
     Match,
     Score,
+    Challenge,
 )
 
 class PlayerSerializer(serializers.ModelSerializer):
@@ -36,3 +37,9 @@ class MatchSerializer(serializers.ModelSerializer):
     class Meta:
         model = Match
         fields = ["match_id", "game", "timestamp_started", "timestamp_finished", "status", "contest_reason", "player_1", "player_2", "result", "player_1_score", "player_2_score", "player_1_video_url", "player_2_video_url"]
+        
+class ChallengeSerializer(serializers.ModelSerializer):
+    game = GameSerializer()
+    class Meta:
+        model = Challenge
+        fields = ['challenge_id', 'timestamp', 'game', 'challenger', 'challenged']

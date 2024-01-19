@@ -15,6 +15,7 @@ class Player(models.Model):
         
     elos = models.ManyToManyField("Game", through="Elo")
     
+    queueing_for = models.ForeignKey("Game", related_name="players_in_queue", on_delete=models.CASCADE, null=True, blank=True)
     currently_playing_match = models.ForeignKey("Match", on_delete=models.CASCADE, null=True, blank=True)
     
     accept_challenges = models.BooleanField(null=False, default=True)
@@ -57,23 +58,15 @@ class Match(models.Model):
     
     contest_reason = models.CharField(max_length=64, null=True, blank=True)
     
-    result = models.CharField(max_length=1, null=True, blank=True, choices=[
-        ("1", "Player 1"), 
-        ("2", "Player 2"), 
-        ("D", "Draw"),
+    result = models.CharField(max_length=16, null=True, blank=True, choices=[
+        ("Win for Player 1", "Player 1"), 
+        ("Win for Player 2", "Player 2"), 
+        ("Draw", "Draw"),
     ])
     
     def __str__(self):
         return f"{self.match_id}: {self.player_1} vs {self.player_2} - {self.game.game_name}"
-    
-class Queue(models.Model):
-    
-        # there can be multiple players in queue at a time
-        # i will not support matchmaking until later though: for now if 2 people are in queue they get matched up
-        players = models.ManyToManyField(Player)
-                
-        def __str__(self):
-            return f"{self.game} queue"
+
 
 class Game(models.Model):
     
@@ -86,8 +79,6 @@ class Game(models.Model):
     speedrun = models.BooleanField(null=False, default=True)
     require_livestream = models.BooleanField(null=False, default=True)
     best_of = models.SmallIntegerField(null=False, default=1)
-    
-    queue = models.ForeignKey(Queue, on_delete=models.CASCADE)
     
     def __str__(self):
         return f"{self.game_name}" 
