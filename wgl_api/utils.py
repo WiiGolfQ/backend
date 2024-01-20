@@ -2,6 +2,28 @@ from openskill.models import PlackettLuce
 
 from .models import Player, Elo, Game, Match
 
+
+
+def create_match(player_1, player_2, game):
+    
+    print(player_1, player_2, game)
+    
+    player_1.queueing_for = None
+    player_1.save()
+    
+    player_2.queueing_for = None
+    player_2.save()
+    
+    # start a match with both players
+    return Match.objects.create(
+        game=game,
+        player_1=player_1,
+        player_2=player_2,
+        status="Ongoing",
+    )
+    
+
+
 """
 teams are a list of list of player objects
 

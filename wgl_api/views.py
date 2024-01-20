@@ -8,7 +8,7 @@ from rest_framework import status
 from rest_framework import permissions
 from rest_framework import generics
 
-from .utils import calculate_elo
+from .utils import calculate_elo, create_match
 
 from .models import (
     Game,
@@ -43,6 +43,32 @@ class PlayerDetail(generics.RetrieveUpdateDestroyAPIView):
         discord_id = self.kwargs.get('discord_id')
         return get_object_or_404(Player, discord_id=discord_id)
     
+    def update(self, request, *args, **kwargs):
+        
+        player = self.get_object()
+        
+        queueing_for = request.data.get("queueing_for")
+        
+        queueing_for_game = Game.objects.get(game_id=queueing_for)
+        
+        if queueing_for is not None:
+            
+            # is another player queueing for this game?
+            # if so, start a match with both players
+            
+            other_player = Player.objects.filter(queueing_for=queueing_for).first()
+            
+            if other_player is not None:
+                
+                # start a match with both players
+                match = create_match(player, other_player, queueing_for_game)
+                                                
+                # return the match
+                # TODO: we need a more permanent way to do this
+                return Response(MatchSerializer(match).data, status=status.HTTP_201_CREATED)
+        
+        return super(PlayerDetail, self).update(request, *args, **kwargs)
+    
 class MatchList(generics.ListCreateAPIView):
     serializer_class = MatchSerializer
     
@@ -76,7 +102,7 @@ class MatchDetail(generics.RetrieveUpdateDestroyAPIView):
             print('tentative result is not none')
                         
             # if we are entering a result for this match for the first time
-            if match.result == "":
+            if match.result == "" or match.result is None:
                 
                 print('stored result is empty')
                 

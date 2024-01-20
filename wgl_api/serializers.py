@@ -17,6 +17,7 @@ class PlayerSerializer(serializers.ModelSerializer):
             "created_timestamp",
             "last_active_timestamp",
             "yt_username",
+            "queueing_for",
             "currently_playing_match",
             "accept_challenges",
             "banned",
@@ -25,7 +26,7 @@ class PlayerSerializer(serializers.ModelSerializer):
 class FullGameSerializer(serializers.ModelSerializer):
     class Meta:
         model = Game
-        fields = ["game_id", "game_name", "speedrun", "require_livestream", "best_of", "players_in_queue"]
+        fields = ["game_id", "game_name", "speedrun", "require_livestream", "best_of"]
         
 class GameSerializer(serializers.ModelSerializer):
     class Meta:
