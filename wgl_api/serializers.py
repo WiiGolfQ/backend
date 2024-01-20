@@ -33,13 +33,13 @@ class GameSerializer(serializers.ModelSerializer):
         fields = ["game_id", "game_name"]
         
 class MatchSerializer(serializers.ModelSerializer):
-    game = GameSerializer()
+    game = GameSerializer(read_only=True)
     class Meta:
         model = Match
         fields = ["match_id", "game", "timestamp_started", "timestamp_finished", "status", "contest_reason", "player_1", "player_2", "result", "player_1_score", "player_2_score", "player_1_video_url", "player_2_video_url"]
         
 class ChallengeSerializer(serializers.ModelSerializer):
-    game = GameSerializer()
+    game = GameSerializer(read_only=True)
     class Meta:
         model = Challenge
         fields = ['challenge_id', 'timestamp', 'game', 'challenger', 'challenged']

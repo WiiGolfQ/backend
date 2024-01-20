@@ -8,6 +8,8 @@ from rest_framework import status
 from rest_framework import permissions
 from rest_framework import generics
 
+from .utils import calculate_elo
+
 from .models import (
     Game,
     Match,
@@ -59,6 +61,37 @@ class MatchDetail(generics.RetrieveUpdateDestroyAPIView):
     def get_object(self):
         match_id = self.kwargs.get('match_id')
         return get_object_or_404(Match, match_id=match_id)
+    
+    # we need to override the update method to check for a change in result
+    def update(self, request, *args, **kwargs):
+        
+        match = self.get_object()
+
+        # check if result was updated by the request
+        result = request.data.get("result")
+
+        
+        if result is not None:
+            
+            print('tentative result is not none')
+                        
+            # if we are entering a result for this match for the first time
+            if match.result == "":
+                
+                print('stored result is empty')
+                
+                # update the result then calculate elo
+                match.result = result
+                match.save()
+                calculate_elo(match)
+                
+            else:
+                
+                # retroactive result change procedure, just pass for now
+                pass
+            
+        return super(MatchDetail, self).update(request, *args, **kwargs) 
+
     
 class ChallengeList(generics.ListCreateAPIView):
     serializer_class = ChallengeSerializer

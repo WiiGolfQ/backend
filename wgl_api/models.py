@@ -30,8 +30,6 @@ class Match(models.Model):
     class Meta:
         constraints = [
             models.CheckConstraint(check=~models.Q(player_1=models.F('player_2')), name='different_players'),
-            models.CheckConstraint(check=~models.Q(player_1_score=models.F('player_2_score')), name='different_scores'),
-            models.CheckConstraint(check=~models.Q(player_1_video_url=models.F('player_2_video_url')), name='different_video_urls'),
         ]
     
     match_id = models.AutoField(primary_key=True)
@@ -58,10 +56,10 @@ class Match(models.Model):
     
     contest_reason = models.CharField(max_length=64, null=True, blank=True)
     
-    result = models.CharField(max_length=16, null=True, blank=True, choices=[
-        ("Win for Player 1", "Player 1"), 
-        ("Win for Player 2", "Player 2"), 
-        ("Draw", "Draw"),
+    result = models.CharField(max_length=1, null=True, blank=True, choices=[
+        ("1", "Player 1 wins"), 
+        ("2", "Player 2 wins"), 
+        ("D", "Draw"),
     ])
     
     def __str__(self):
@@ -98,15 +96,21 @@ class Score(models.Model):
     def __str__(self):
         return f"{self.player}:{self.game}:{self.score}"
     
+    
+STARTING_ELO = 1500
 
 class Elo(models.Model):
     
     player = models.ForeignKey(Player, on_delete=models.CASCADE)
     game = models.ForeignKey(Game, on_delete=models.CASCADE)
-    elo = models.DecimalField(max_digits=5, decimal_places=1)
+    
+    mu = models.FloatField(null=False, default=STARTING_ELO)
+    sigma = models.FloatField(null=False, default=STARTING_ELO / 3)
     
     def __str__(self):
-        return f"{self.player}:{self.game}:{self.elo} elo"
+        return f"{self.player}:{self.game}:{'{:.1f}'.format(self.mu)} elo"
+    
+
     
 class Challenge(models.Model):
     
