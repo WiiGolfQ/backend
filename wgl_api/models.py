@@ -40,11 +40,17 @@ class Match(models.Model):
     timestamp_finished = models.DateTimeField(null=True, blank=True)
     
     player_1 = models.ForeignKey(Player, on_delete=models.CASCADE, related_name="player_1")
-    player_1_score = models.ForeignKey("Score", on_delete=models.CASCADE, related_name="player_1_score", null=True, blank=True)
+    @property
+    def player_1_score(self):
+        score =  Score.objects.filter(player=self.player_1, game=self.game, match=self).first()
+        return score.score if score else None
     player_1_video_url = models.URLField(null=True, blank=True)
     
     player_2 = models.ForeignKey(Player, on_delete=models.CASCADE, related_name="player_2")
-    player_2_score = models.ForeignKey("Score", on_delete=models.CASCADE, related_name="player_2_score", null=True, blank=True)
+    @property
+    def player_2_score(self):
+        score=Score.objects.filter(player=self.player_2, game=self.game, match=self).first()
+        return score.score if score else None
     player_2_video_url = models.URLField(null=True, blank=True)
     
     status = models.CharField(max_length=16, null=False, choices=[

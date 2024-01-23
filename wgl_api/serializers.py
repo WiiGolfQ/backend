@@ -6,9 +6,10 @@ from .models import (
     Match,
     Score,
     Challenge,
+    Elo,
 )
 
-class PlayerSerializer(serializers.ModelSerializer):
+class FullPlayerSerializer(serializers.ModelSerializer):
     class Meta:
         model = Player
         fields = [
@@ -21,6 +22,14 @@ class PlayerSerializer(serializers.ModelSerializer):
             "currently_playing_match",
             "accept_challenges",
             "banned",
+        ]
+
+class PlayerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Player
+        fields = [
+            "discord_id",
+            "username",
         ]
 
 class FullGameSerializer(serializers.ModelSerializer):
@@ -44,3 +53,15 @@ class ChallengeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Challenge
         fields = ['challenge_id', 'timestamp', 'game', 'challenger', 'challenged']
+        
+class EloSerializer(serializers.ModelSerializer):
+    player = PlayerSerializer(read_only=True)
+    class Meta:
+        model = Elo
+        fields = ["player", "mu"]
+        
+class ScoreSerializer(serializers.ModelSerializer):
+    player = PlayerSerializer(read_only=True)
+    class Meta:
+        model = Score
+        fields = ["player", "score", "match"]
