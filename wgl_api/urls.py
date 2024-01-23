@@ -11,6 +11,7 @@ from .views import (
     LeaderboardList,
     ScoresList,
     ReportScore,
+    GameList,
 )
 
 urlpatterns = [
@@ -25,4 +26,5 @@ urlpatterns = [
     path('leaderboard/<int:game_id>', LeaderboardList.as_view()),
     path('scores/<int:game_id>', ScoresList.as_view()),
     path('report/<int:match_id>', ReportScore.as_view()),
+    path('game/', GameList.as_view()),
 ]

@@ -44,6 +44,8 @@ class GameSerializer(serializers.ModelSerializer):
         
 class MatchSerializer(serializers.ModelSerializer):
     game = GameSerializer(read_only=True)
+    player_1 = PlayerSerializer(read_only=True)
+    player_2 = PlayerSerializer(read_only=True)
     class Meta:
         model = Match
         fields = ["match_id", "game", "timestamp_started", "timestamp_finished", "status", "contest_reason", "player_1", "player_2", "result", "player_1_score", "player_2_score", "player_1_video_url", "player_2_video_url"]

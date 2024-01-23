@@ -6,9 +6,9 @@ class Player(models.Model):
         
     discord_id = models.BigIntegerField(primary_key=True, null=False, unique=True)
     
-    username = models.CharField(max_length=64, null=False, blank=True, unique=True)
+    username = models.CharField(max_length=64, null=False, unique=True)
     
-    yt_username = models.CharField(max_length=64, null=False)
+    yt_username = models.CharField(max_length=64, null=False, unique=True)
         
     created_timestamp = models.DateTimeField(auto_now_add=True)
     last_active_timestamp = models.DateTimeField(auto_now_add=True)

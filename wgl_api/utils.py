@@ -6,7 +6,10 @@ from .models import Player, Elo, Game, Match
 
 def create_match(player_1, player_2, game):
     
-    print(player_1, player_2, game)
+    if player_1.currently_playing_match:
+        raise Exception(f"{player_1} is already playing a match")
+    if player_2.currently_playing_match:
+        raise Exception(f"{player_2} is already playing a match")
     
     player_1.queueing_for = None
     player_1.save()

@@ -48,6 +48,11 @@ class PlayerNotInMatch(APIException):
     status_code = 400
     default_detail = 'Player is not in this match'
     default_code = 'bad_request'
+    
+class DuplicateYTUsername(APIException):
+    status_code = 400
+    default_detail = 'This YouTube username is already in use'
+    default_code = 'bad_request'
 
 
 
@@ -56,14 +61,32 @@ class PlayerList(generics.ListCreateAPIView):
     
     serializer_class = FullPlayerSerializer
     
-    def get_queryset(self):
-        queryset = Player.objects.all() 
+    def create(self, request, *args, **kwargs):
+        discord_id = request.data.get('discord_id')
+        username = request.data.get('username')
+        yt_username = request.data.get('yt_username')
+        # Add other fields if necessary
+
+        if discord_id is None or username is None or yt_username is None:
+            return Response({"error": "Missing required fields"}, status=status.HTTP_400_BAD_REQUEST)
+
+        player, created = Player.objects.get_or_create(discord_id=discord_id)
+
+        if Player.objects.filter(username=username).exclude(discord_id=discord_id).exists():
+            return Response({"error": "Username already exists."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if Player.objects.filter(yt_username=yt_username).exclude(discord_id=discord_id).exists():
+            return Response({"error": "YouTube username already exists."}, status=status.HTTP_400_BAD_REQUEST)
+
+        player.username = username
+        player.yt_username = yt_username
+        # Update other fields if necessary
+        player.save()
         
-        discord_id = self.request.query_params.get("discord_id", None)
-        if discord_id is not None:
-            queryset = queryset.filter(discord_id=discord_id)
-            
-        return queryset
+        serializer = self.get_serializer(player)
+        return Response(serializer.data, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
+                    
+    
 
 class PlayerDetail(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = FullPlayerSerializer
@@ -176,6 +199,8 @@ class ReportScore(generics.ListAPIView):
             
             player_score = Score.objects.filter(player=player, game=match.game, match=match).first()
             
+            # we need to check if a score object already exists,
+            # so we can either update it or create a new one
             if player_score:
                 player_score.score = score
                 player_score.save()
@@ -308,5 +333,12 @@ class ScoresList(generics.ListAPIView):
         game = self.get_object()
         
         return Score.objects.filter(game=game, match__status="Finished").order_by('score')
+    
+class GameList(generics.ListAPIView):
+        
+    serializer_class = FullGameSerializer
+    
+    def get_queryset(self):
+        return Game.objects.all()
     
         
