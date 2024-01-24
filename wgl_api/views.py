@@ -153,21 +153,20 @@ class MatchDetail(generics.RetrieveUpdateDestroyAPIView):
         # check if result was updated by the request
         result = request.data.get("result")
 
-        
         if result is not None:
                                     
-            # if we are entering a result for this match for the first time
-            if match.result == "" or match.result is None:
+            # if the old match status was result contested
+            if match.status == "Result contested":
                                 
+                # retroactive result change procedure, just pass for now
+                pass
+                
+            else:
+                
                 # update the result then calculate elo
                 match.result = result
                 match.save()
                 calculate_elo(match)
-                
-            else:
-                
-                # retroactive result change procedure, just pass for now
-                pass
             
         return super(MatchDetail, self).update(request, *args, **kwargs)
     

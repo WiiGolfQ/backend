@@ -53,7 +53,7 @@ class Match(models.Model):
         return score.score if score else None
     player_2_video_url = models.URLField(null=True, blank=True)
     
-    status = models.CharField(max_length=16, null=False, choices=[
+    status = models.CharField(max_length=16, null=False, default="Ongoing", choices=[
         ("Cancelled", "Cancelled"),
         ("Result contested", "Result contested"),
         ("Finished", "Finished"),

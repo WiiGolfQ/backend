@@ -30,6 +30,7 @@ class PlayerSerializer(serializers.ModelSerializer):
         fields = [
             "discord_id",
             "username",
+            "yt_username",
         ]
 
 class FullGameSerializer(serializers.ModelSerializer):
