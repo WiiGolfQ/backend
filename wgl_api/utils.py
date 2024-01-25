@@ -1,34 +1,32 @@
 from openskill.models import PlackettLuce
 
-from .models import Player, Elo, Game, Match
-
-
-
-def create_match(player_1, player_2, game):
+def create_match(p1, p2, game):
     
-    if player_1.currently_playing_match:
-        raise Exception(f"{player_1} is already playing a match")
-    if player_2.currently_playing_match:
-        raise Exception(f"{player_2} is already playing a match")
+    from .models import Match
     
-    player_1.queueing_for = None
-    player_1.save()
+    if p1.currently_playing_match:
+        raise Exception(f"{p1} is already playing a match")
+    if p2.currently_playing_match:
+        raise Exception(f"{p2} is already playing a match")
     
-    player_2.queueing_for = None
-    player_2.save()
+    p1.queueing_for = None
+    p1.save()
+    
+    p2.queueing_for = None
+    p2.save()
     
     # start a match with both players
     return Match.objects.create(
         game=game,
-        player_1=player_1,
-        player_2=player_2,
+        p1=p1,
+        p2=p2,
         status="Ongoing",
     )
     
 
 
 """
-teams are a list of list of player objects
+TODO: support multiplayer
 
 example:
 
@@ -37,39 +35,42 @@ this match was a 2v2. p1/p2 got 1st, p3/p4 got 2nd
 
 """
 
-def calculate_elo(match):
+STARTING_ELO = 1500
+
+MODEL = PlackettLuce(
+    mu = STARTING_ELO,
+    sigma = STARTING_ELO / 3,
+    beta = STARTING_ELO / 6,
+    tau = STARTING_ELO / 300,
+)
+
+# pass in a tuple (mu, sigma)
+def calculate_elo(p1_elo: tuple, p2_elo: tuple, result):
     
-    print('inside')
-
-    STARTING_ELO = 1500
-
-    model = PlackettLuce(
-        mu = STARTING_ELO,
-        sigma = STARTING_ELO / 3,
-        beta = STARTING_ELO / 6,
-        tau = STARTING_ELO / 300,
-    )
-        
-    # can draws affect players' elo? check later
+    match result:
+        case "1":
+            ranks = [ 1,2 ]
+        case "2":
+            ranks = [ 2,1 ]
+        case "draw":
+            ranks = [ 1,1 ]
+            
+    model = MODEL
+            
+    p1 = model.rating(mu=p1_elo[0], sigma=p1_elo[1])
+    p2 = model.rating(mu=p2_elo[0], sigma=p2_elo[1])
     
-    if match.result == "1":
-        teams = [ [match.player_1], [match.player_2] ]
-    elif match.result == "2":
-        teams = [ [match.player_2], [match.player_1] ]
-    else: 
-        return
-        
-    elo_teams = [[Elo.objects.get_or_create(player=p, game=match.game)[0] for p in team] for team in teams]
+    teams = [ [p1], [p2] ]
+    
+    teams = model.rate(teams, ranks=ranks)
+    
+    return (teams[0][0].mu, teams[0][0].sigma), (teams[1][0].mu, teams[1][0].sigma)
 
-    openskill_teams = [[model.rating(mu=elo.mu, sigma=elo.sigma) for elo in team] for team in elo_teams]
-        
-    openskill_teams = model.rate(openskill_teams)
-        
-    for i, team in enumerate(elo_teams):
-        for j, elo in enumerate(team):
-            elo.mu = openskill_teams[i][j].mu
-            elo.sigma = openskill_teams[i][j].sigma
-            elo.save()
+def assign_elo(match):
+    
+    pass
+    
+    
             
     
 

@@ -163,10 +163,10 @@ class MatchDetail(generics.RetrieveUpdateDestroyAPIView):
                 
             else:
                 
-                # update the result then calculate elo
+                # update the result (this will change elos automatically)
                 match.result = result
                 match.save()
-                calculate_elo(match)
+                # calculate_elo(match)
             
         return super(MatchDetail, self).update(request, *args, **kwargs)
     
@@ -193,7 +193,7 @@ class ReportScore(generics.ListAPIView):
             
             score = int(score)
             
-            if player != match.player_1 and player != match.player_2:
+            if player != match.p1 and player != match.p2:
                 raise PlayerNotInMatch()
             
             player_score = Score.objects.filter(player=player, game=match.game, match=match).first()
@@ -275,7 +275,7 @@ class QueueAdd(generics.ListAPIView):
         
         # check if the player is in a match
         player_in_match = Match.objects.filter(
-            (Q(player_1=player) | Q(player_2=player)) & 
+            (Q(p1=player) | Q(p2=player)) & 
             ~Q(status__in=["Result contested", "Finished"])
         ).first()    
             
@@ -285,10 +285,10 @@ class QueueAdd(generics.ListAPIView):
         player.queueing_for = game
         player.save()
                 
-        # TODO: better matchmaking
         
         # is another player queueing for this game?
         # if so, start a match with both players
+        # TODO: more complex matchmaking
         
         other_player = Player.objects.filter(queueing_for=game).exclude(discord_id=player.discord_id).first()
                 
