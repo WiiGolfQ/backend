@@ -63,8 +63,7 @@ class Match(models.Model):
         ]
     
     match_id = models.AutoField(primary_key=True)
-    
-    
+    discord_thread_id = models.BigIntegerField(null=True, blank=True)
     
     game = models.ForeignKey(Game, on_delete=models.CASCADE)
     

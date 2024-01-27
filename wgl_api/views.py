@@ -169,23 +169,24 @@ class MatchDetail(generics.RetrieveUpdateDestroyAPIView):
             
         return super(MatchDetail, self).update(request, *args, **kwargs)
     
-class ReportScore(generics.ListAPIView):
+class ReportScore(generics.RetrieveAPIView):
     
     serializer_class = MatchSerializer
     
     # either create a new score or update an existing one
     
+    
     def get_object(self):
         match_id = self.kwargs.get('match_id')
         return get_object_or_404(Match, match_id=match_id)
     
-    def get_queryset(self):
+    def get(self, request, *args, **kwargs):
         
         match = self.get_object()
         
         discord_id = self.request.query_params.get("player", None)
         score = self.request.query_params.get("score", None)
-        
+                
         player = get_object_or_404(Player, discord_id=discord_id)
 
         if score is not None:
@@ -200,9 +201,11 @@ class ReportScore(generics.ListAPIView):
             # we need to check if a score object already exists,
             # so we can either update it or create a new one
             if player_score:
+                print("updating score")
                 player_score.score = score
                 player_score.save()
             else:
+                print("creating score")
                 Score.objects.create(
                     player=player,
                     game=match.game,
@@ -210,7 +213,8 @@ class ReportScore(generics.ListAPIView):
                     score=score,
                 )   
                 
-        return Match.objects.filter(match_id=match.match_id) 
+        serializer = self.get_serializer(match)
+        return Response(serializer.data)
             
             
             

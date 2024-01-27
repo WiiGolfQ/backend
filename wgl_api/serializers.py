@@ -60,6 +60,7 @@ class MatchSerializer(serializers.ModelSerializer):
         model = Match
         fields = [
             "match_id", 
+            "discord_thread_id",
             "game", 
             "timestamp_started", 
             "timestamp_finished", 
