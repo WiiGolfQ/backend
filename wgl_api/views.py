@@ -11,7 +11,7 @@ from rest_framework import generics
 from rest_framework.exceptions import APIException
 from rest_framework.pagination import PageNumberPagination
 
-from .utils import calculate_elo, create_match
+from .utils import create_match, assign_elo
 
 from .models import (
     Game,
@@ -25,7 +25,6 @@ from .models import (
 from .serializers import (
     FullGameSerializer,
     MatchSerializer,
-    PlayerSerializer,
     FullPlayerSerializer,
     ChallengeSerializer,
     EloSerializer,
@@ -166,7 +165,7 @@ class MatchDetail(generics.RetrieveUpdateDestroyAPIView):
                 # update the result (this will change elos automatically)
                 match.result = result
                 match.save()
-                # calculate_elo(match)
+                assign_elo(match)
             
         return super(MatchDetail, self).update(request, *args, **kwargs)
     
@@ -260,18 +259,13 @@ class QueueAdd(generics.ListAPIView):
         discord_id = self.kwargs.get('discord_id')
         
         if game_id == 0:
-            return ( None, get_object_or_404(Player, discord_id=discord_id) )
+            return ( None, Player.objects.filter(discord_id=discord_id).first() )
         
-        return ( get_object_or_404(Game, game_id=game_id), get_object_or_404(Player, discord_id=discord_id) )
+        return ( get_object_or_404(Game, game_id=game_id), Player.objects.filter(discord_id=discord_id).first() )
     
     def get(self, request, *args, **kwargs):
-                
+                        
         game, player = self.get_object()
-        
-        if game is None:
-            player.queueing_for = None
-            player.save()
-            return Response(status=status.HTTP_201_CREATED)
         
         # check if the player is in a match
         player_in_match = Match.objects.filter(
@@ -290,13 +284,15 @@ class QueueAdd(generics.ListAPIView):
         # if so, start a match with both players
         # TODO: more complex matchmaking
         
-        other_player = Player.objects.filter(queueing_for=game).exclude(discord_id=player.discord_id).first()
+        if game is not None:
+        
+            other_player = Player.objects.filter(queueing_for=game).exclude(discord_id=player.discord_id).first()
+                    
+            if other_player is not None:
                 
-        if other_player is not None:
-            
-            # start a match with both players
-            match = create_match(player, other_player, game)
-            self.queryset = Match.objects.filter(match_id=match.match_id)
+                # start a match with both players
+                match = create_match(player, other_player, game)
+                self.queryset = Match.objects.filter(match_id=match.match_id)
             
         serializer = MatchSerializer(self.get_queryset(), many=True)
         

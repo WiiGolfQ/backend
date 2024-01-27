@@ -1,5 +1,6 @@
 from django.db import models
-from .utils import calculate_elo
+from django.core.validators import RegexValidator
+from .utils import calculate_elo, calculate_p1_win_prob
 
 # Create your models here.
 
@@ -9,7 +10,13 @@ class Player(models.Model):
     
     username = models.CharField(max_length=64, null=False, unique=True)
     
-    yt_username = models.CharField(max_length=64, null=False, unique=True)
+    yt_username = models.CharField(max_length=30, null=False, unique=True, validators=[
+        RegexValidator(
+            regex=r'^[\w.-]+$',
+            message='Username can only contain alphanumeric characters, underscores, hyphens, and periods.',
+            code='invalid_username'
+        ),
+    ])
         
     created_timestamp = models.DateTimeField(auto_now_add=True)
     last_active_timestamp = models.DateTimeField(auto_now_add=True)
@@ -22,7 +29,7 @@ class Player(models.Model):
     def currently_playing_match(self):
         return (
             Match.objects.filter(status="Ongoing", p1=self).exclude(status__in=["Result contested", "Finished", "Cancelled"]).first() 
-            or Match.objects.filter(status="Ongoing", p1=self).exclude(status__in=["Result contested", "Finished", "Cancelled"]).first()
+            or Match.objects.filter(status="Ongoing", p2=self).exclude(status__in=["Result contested", "Finished", "Cancelled"]).first()
         )
     
     accept_challenges = models.BooleanField(null=False, default=True)
@@ -57,6 +64,8 @@ class Match(models.Model):
     
     match_id = models.AutoField(primary_key=True)
     
+    
+    
     game = models.ForeignKey(Game, on_delete=models.CASCADE)
     
     timestamp_started = models.DateTimeField(auto_now_add=True)
@@ -70,14 +79,23 @@ class Match(models.Model):
         return score.score if score else None
     p1_video_url = models.URLField(null=True, blank=True)
     
-    p1_mu_before = models.FloatField()
-    p1_sigma_before = models.FloatField()
+    # we set these values below
+    p1_mu_before = models.FloatField(null=False, blank=True)
+    p1_sigma_before = models.FloatField(null=False, blank=True)
+    
     @property
     def p1_mu_after(self):
         if self.p1_mu_before is None or self.result is None:
             return None
         
-        return calculate_elo((self.p1_mu_before, self.p1_sigma_before), (self.p2_mu_before, self.p2_sigma_before), self.result)[0][0]
+        return self.predictions['elo'][self.result][0][0] # [0][0] = [player 1][mu (as opposed to delta)]
+    
+    @property
+    def p1_sigma_after(self):
+        if self.p2_sigma_before is None or self.result is None:
+            return None
+        
+        return self.predictions['sigma'][0]
     
     
     p2 = models.ForeignKey(Player, on_delete=models.CASCADE, related_name="p2")
@@ -87,21 +105,66 @@ class Match(models.Model):
         return score.score if score else None
     p2_video_url = models.URLField(null=True, blank=True)
     
-    p2_mu_before = models.FloatField()
-    p2_sigma_before = models.FloatField()
+    # we make these null=True but we set them below
+    p2_mu_before = models.FloatField(null=False, blank=True)
+    p2_sigma_before = models.FloatField(null=False, blank=True)
+        
     @property
     def p2_mu_after(self):
         if self.p2_mu_before is None or self.result is None:
             return None
         
-        return calculate_elo((self.p2_mu_before, self.p2_sigma_before), (self.p1_mu_before, self.p1_sigma_before), self.result)[0][1]
+        return self.predictions['elo'][self.result][1][0] # [1][0] = [player 2][mu (as opposed to delta)]
     
+    @property
+    def p2_sigma_after(self):
+        if self.p2_sigma_before is None or self.result is None:
+            return None
+        
+        return self.predictions['sigma'][1]
     
-    status = models.CharField(max_length=16, null=False, default="Ongoing", choices=[
+    @property
+    def predictions(self):
+        
+        def format_delta(x):
+            
+            x = round(x, 1)
+            
+            if x > 0:
+                return f"+{x}"
+            elif x == 0:
+                return f"±{x}"
+            else:
+                return f"{x}"
+        
+        if self.p1_mu_before is None or self.p2_mu_before is None:
+            return None
+        
+        result_choices = [choice[0] for choice in self._meta.get_field('result').choices]
+        
+        elo_predictions = {}
+        
+        for choice in result_choices:
+            (p1_mu, p1_sigma), (p2_mu, p2_sigma) = calculate_elo((self.p1_mu_before, self.p1_sigma_before), (self.p2_mu_before, self.p2_sigma_before), choice)
+            
+            p1_delta = format_delta(p1_mu - self.p1_mu_before)
+            p2_delta = format_delta(p2_mu - self.p2_mu_before)
+            
+            elo_predictions[choice] = ( (p1_mu, p1_delta) , (p2_mu, p2_delta) )
+            
+        return {
+            "p1_win_prob": calculate_p1_win_prob((self.p1_mu_before, self.p1_sigma_before), (self.p2_mu_before, self.p2_sigma_before)),
+            "sigma": [p1_sigma, p2_sigma],
+            "elo": elo_predictions,
+        }
+    
+    status = models.CharField(max_length=23, null=False, default="Waiting for livestreams", choices=[
         ("Cancelled", "Cancelled"),
         ("Result contested", "Result contested"),
         ("Finished", "Finished"),
         ("Ongoing", "Ongoing"),
+        ("Waiting for livestreams", "Waiting for livestreams"),
+        ("Waiting for agrees", "Waiting for agrees")
     ])
     
     contest_reason = models.CharField(max_length=64, null=True, blank=True)
@@ -151,8 +214,8 @@ class Elo(models.Model):
     player = models.ForeignKey(Player, on_delete=models.CASCADE)
     game = models.ForeignKey(Game, on_delete=models.CASCADE)
     
-    mu = models.FloatField(null=False, default=STARTING_ELO)
-    sigma = models.FloatField(null=False, default=STARTING_ELO / 3)
+    mu = models.DecimalField(null=False, default=STARTING_ELO, max_digits=5, decimal_places=1)
+    sigma = models.DecimalField(null=False, default=STARTING_ELO/3, max_digits=5, decimal_places=2)
     
     def __str__(self):
         return f"{self.player}:{self.game}:{'{:.1f}'.format(self.mu)} elo"
