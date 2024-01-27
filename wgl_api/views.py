@@ -148,6 +148,14 @@ class MatchDetail(generics.RetrieveUpdateDestroyAPIView):
     def update(self, request, *args, **kwargs):
         
         match = self.get_object()
+        
+        for field, value in request.data.items():
+            if hasattr(match, field):
+                if value == "":
+                    value = None
+                setattr(match, field, value)
+
+        match.save()
 
         # check if result was updated by the request
         result = request.data.get("result")
