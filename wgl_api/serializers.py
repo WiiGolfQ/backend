@@ -103,4 +103,4 @@ class ScoreSerializer(serializers.ModelSerializer):
     player = PlayerSerializer(read_only=True)
     class Meta:
         model = Score
-        fields = ["player", "score", "match"]
+        fields = ["player", "score", "score_formatted", "match"]

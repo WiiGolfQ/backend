@@ -1,6 +1,6 @@
 from django.db import models
 from django.core.validators import RegexValidator
-from .utils import calculate_elo, calculate_p1_win_prob
+from .utils import calculate_elo, calculate_p1_win_prob, ms_to_time
 
 # Create your models here.
 
@@ -75,7 +75,7 @@ class Match(models.Model):
     @property
     def p1_score(self):
         score =  Score.objects.filter(player=self.p1, game=self.game, match=self).first()
-        return score.score if score else None
+        return score.score_formatted if score else None
     p1_video_url = models.URLField(null=True, blank=True)
     
     # we set these values below
@@ -101,7 +101,7 @@ class Match(models.Model):
     @property
     def p2_score(self):
         score=Score.objects.filter(player=self.p2, game=self.game, match=self).first()
-        return score.score if score else None
+        return score.score_formatted if score else None
     p2_video_url = models.URLField(null=True, blank=True)
     
     # we make these null=True but we set them below
@@ -199,6 +199,23 @@ class Score(models.Model):
     match = models.ForeignKey("Match", on_delete=models.CASCADE, blank=True)
     
     score = models.IntegerField(null=False)
+    
+    @property
+    def score_formatted(self):
+        
+        if self.game.speedrun:
+            return ms_to_time(self.score)
+        else:
+            score = score - 72
+            
+            if score > 0:
+                return f"+{score}"
+            elif score == 0:
+                return f"±{score}"
+            else:
+                return f"{score}"
+                
+    
     video_url = models.URLField(null=True)
     verified = models.BooleanField(null=False, default=True)
     

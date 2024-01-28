@@ -10,7 +10,7 @@ def create_match(p1, p2, game):
         raise Exception(f"{p2} is already playing a match")
     
     p1.queueing_for = None
-    p1.save()
+    p1.save()   
     
     p2.queueing_for = None
     p2.save()
@@ -105,6 +105,17 @@ def calculate_p1_win_prob(p1_elo, p2_elo):
     prob = model.predict_win([[p1], [p2]])[0]
     
     return round(prob, 3)
+
+def ms_to_time(ms):
+    
+    seconds = ms / 1000
+    minutes = seconds // 60
+    seconds = "{:.3f}".format(seconds % 60)
+    
+    if minutes > 0:
+        return f"{minutes}:{seconds}"
+    else:
+        return f"{seconds}"
 
 
 
