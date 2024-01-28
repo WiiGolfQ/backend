@@ -4,10 +4,12 @@ def create_match(p1, p2, game):
     
     from .models import Match
     
-    if p1.currently_playing_match:
-        raise Exception(f"{p1} is already playing a match")
-    if p2.currently_playing_match:
-        raise Exception(f"{p2} is already playing a match")
+    # this is probably not necessary because you can't queue for a match if you're already playing one
+    
+    # if p1.currently_playing_match:
+    #     raise Exception(f"{p1} is already playing a match")
+    # if p2.currently_playing_match:
+    #     raise Exception(f"{p2} is already playing a match")
     
     p1.queueing_for = None
     p1.save()   
@@ -110,12 +112,19 @@ def ms_to_time(ms):
     
     seconds = ms / 1000
     minutes = seconds // 60
-    seconds = "{:.3f}".format(seconds % 60)
+    hours = minutes // 60
+
+    seconds = seconds % 60
+    minutes = int(minutes % 60)
+    hours = int(hours)
     
-    if minutes > 0:
-        return f"{minutes}:{seconds}"
+    if hours != 0:
+        return f"{hours}:{minutes:02}:{seconds:06.3f}"
+    elif minutes != 0:
+        return f"{minutes}:{seconds:06.3f}"
     else:
-        return f"{seconds}"
+        return f"{seconds:.3f}"
+
 
 
 

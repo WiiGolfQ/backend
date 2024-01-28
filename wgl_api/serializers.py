@@ -28,7 +28,7 @@ class FullPlayerSerializer(serializers.ModelSerializer):
         ]
         
     def get_currently_playing_match(self, obj):
-        match = obj.currently_playing_match
+        match = obj.currently_playing_match()
         if match:
             return match.match_id
         return None

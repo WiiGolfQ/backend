@@ -1,10 +1,11 @@
 from django.db import models
 from django.core.validators import RegexValidator
 from .utils import calculate_elo, calculate_p1_win_prob, ms_to_time
+from computedfields.models import ComputedFieldsModel, computed, compute
 
 # Create your models here.
 
-class Player(models.Model):
+class Player(ComputedFieldsModel):
         
     discord_id = models.BigIntegerField(primary_key=True, null=False, unique=True)
     
@@ -25,11 +26,10 @@ class Player(models.Model):
     
     queueing_for = models.ForeignKey("Game", related_name="players_in_queue", on_delete=models.CASCADE, null=True, blank=True)
     
-    @property
     def currently_playing_match(self):
         return (
-            Match.objects.filter(status="Ongoing", p1=self).exclude(status__in=["Result contested", "Finished", "Cancelled"]).first() 
-            or Match.objects.filter(status="Ongoing", p2=self).exclude(status__in=["Result contested", "Finished", "Cancelled"]).first()
+            Match.objects.filter(active=True, p1=self).first() 
+            or Match.objects.filter(active=True, p2=self).first()
         )
     
     accept_challenges = models.BooleanField(null=False, default=True)
@@ -54,7 +54,7 @@ class Game(models.Model):
     def __str__(self):
         return f"{self.game_name}" 
     
-class Match(models.Model):
+class Match(ComputedFieldsModel):
     
     class Meta:
         constraints = [
@@ -72,7 +72,12 @@ class Match(models.Model):
     
     p1 = models.ForeignKey(Player, on_delete=models.CASCADE, related_name="p1")
     
-    @property
+    @computed(
+        models.CharField(max_length=12, null=False),
+        depends=[
+            ('match_scores', ['player', 'game', 'match'])
+        ]
+    )
     def p1_score(self):
         score =  Score.objects.filter(player=self.p1, game=self.game, match=self).first()
         return score.score_formatted if score else None
@@ -82,14 +87,24 @@ class Match(models.Model):
     p1_mu_before = models.FloatField(null=False, blank=True)
     p1_sigma_before = models.FloatField(null=False, blank=True)
     
-    @property
+    @computed(
+        models.FloatField(null=False, blank=True),
+        depends=[
+            ('self', ['predictions'])
+        ]
+    )
     def p1_mu_after(self):
         if self.p1_mu_before is None or self.result is None:
             return None
         
         return self.predictions['elo'][self.result][0][0] # [0][0] = [player 1][mu (as opposed to delta)]
     
-    @property
+    @computed(
+        models.FloatField(null=False, blank=True),
+        depends=[
+            ('self', ['predictions'])
+        ]
+    )
     def p1_sigma_after(self):
         if self.p2_sigma_before is None or self.result is None:
             return None
@@ -98,7 +113,13 @@ class Match(models.Model):
     
     
     p2 = models.ForeignKey(Player, on_delete=models.CASCADE, related_name="p2")
-    @property
+
+    @computed(
+        models.CharField(max_length=12, null=False),
+        depends=[
+            ('match_scores', ['player', 'game', 'match'])
+        ]
+    )
     def p2_score(self):
         score=Score.objects.filter(player=self.p2, game=self.game, match=self).first()
         return score.score_formatted if score else None
@@ -108,21 +129,36 @@ class Match(models.Model):
     p2_mu_before = models.FloatField(null=False, blank=True)
     p2_sigma_before = models.FloatField(null=False, blank=True)
         
-    @property
+    @computed(
+        models.FloatField(null=False, blank=True),
+        depends=[
+            ('self', ['predictions'])
+        ]
+    )
     def p2_mu_after(self):
         if self.p2_mu_before is None or self.result is None:
             return None
         
         return self.predictions['elo'][self.result][1][0] # [1][0] = [player 2][mu (as opposed to delta)]
     
-    @property
+    @computed(
+        models.FloatField(null=False, blank=True),
+        depends=[
+            ('self', ['predictions'])
+        ]
+    )
     def p2_sigma_after(self):
         if self.p2_sigma_before is None or self.result is None:
             return None
         
         return self.predictions['sigma'][1]
     
-    @property
+    @computed(
+        models.JSONField(null=True, blank=True),
+        depends=[
+            ('self', ['p1_mu_before', 'p1_sigma_before', 'p2_mu_before', 'p2_sigma_before'])
+        ]
+    )
     def predictions(self):
         
         def format_delta(x):
@@ -156,6 +192,15 @@ class Match(models.Model):
             "sigma": [p1_sigma, p2_sigma],
             "elo": elo_predictions,
         }
+        
+    @computed(
+        models.BooleanField(null=False, blank=True),
+        depends=[
+            ('self', ['status'])
+        ]
+    )
+    def active(self):
+        return self.status not in ["Finished", "Cancelled", "Result contested"]
     
     status = models.CharField(max_length=23, null=False, default="Waiting for livestreams", choices=[
         ("Cancelled", "Cancelled"),
@@ -184,23 +229,34 @@ class Match(models.Model):
             
             p1_elo = Elo.objects.filter(player=self.p1, game=self.game).first()
             p2_elo = Elo.objects.filter(player=self.p2, game=self.game).first()
+            
+            if not p1_elo:
+                p1_elo = Elo.objects.create(player=self.p1, game=self.game)
+            
+            if not p2_elo:
+                p2_elo = Elo.objects.create(player=self.p2, game=self.game)
               
             self.p1_mu_before, self.p1_sigma_before = p1_elo.mu, p1_elo.sigma
             self.p2_mu_before, self.p2_sigma_before = p2_elo.mu, p2_elo.sigma
             
         super().save(*args, **kwargs)
     
-class Score(models.Model):   
+class Score(ComputedFieldsModel):   
     
     score_id = models.AutoField(primary_key=True) 
     
     player = models.ForeignKey(Player, on_delete=models.CASCADE, null=False)
     game = models.ForeignKey(Game, on_delete=models.CASCADE, null=False)
-    match = models.ForeignKey("Match", on_delete=models.CASCADE, blank=True)
+    match = models.ForeignKey("Match", related_name="match_scores", on_delete=models.CASCADE, blank=True)
     
     score = models.IntegerField(null=False)
     
-    @property
+    @computed(
+        models.CharField(max_length=12, null=False),
+        depends=[
+            ('self', ['game', 'score'])
+        ]
+    )
     def score_formatted(self):
         
         if self.game.speedrun:
@@ -220,7 +276,7 @@ class Score(models.Model):
     verified = models.BooleanField(null=False, default=True)
     
     def __str__(self):
-        return f"{self.player}:{self.game}:{self.score}"
+        return f"{self.player}:{self.game}:{self.score_formatted}"
     
     
 STARTING_ELO = 1500
