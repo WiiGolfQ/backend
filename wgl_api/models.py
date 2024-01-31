@@ -73,14 +73,19 @@ class Match(ComputedFieldsModel):
     p1 = models.ForeignKey(Player, on_delete=models.CASCADE, related_name="p1")
     
     @computed(
-        models.CharField(max_length=12, null=False),
+        models.CharField(max_length=12, null=True),
         depends=[
             ('match_scores', ['player', 'game', 'match'])
         ]
     )
     def p1_score(self):
-        score =  Score.objects.filter(player=self.p1, game=self.game, match=self).first()
+        score = Score.objects.filter(
+            player=self.p1, 
+            game=self.game, 
+            match__match_id=self.match_id
+        ).first()
         return score.score_formatted if score else None
+        # return "test"
     p1_video_url = models.URLField(null=True, blank=True)
     
     # we set these values below
@@ -88,7 +93,7 @@ class Match(ComputedFieldsModel):
     p1_sigma_before = models.FloatField(null=False, blank=True)
     
     @computed(
-        models.FloatField(null=False, blank=True),
+        models.FloatField(null=True, blank=True),
         depends=[
             ('self', ['predictions'])
         ]
@@ -100,7 +105,7 @@ class Match(ComputedFieldsModel):
         return self.predictions['elo'][self.result][0][0] # [0][0] = [player 1][mu (as opposed to delta)]
     
     @computed(
-        models.FloatField(null=False, blank=True),
+        models.FloatField(null=True, blank=True),
         depends=[
             ('self', ['predictions'])
         ]
@@ -115,14 +120,19 @@ class Match(ComputedFieldsModel):
     p2 = models.ForeignKey(Player, on_delete=models.CASCADE, related_name="p2")
 
     @computed(
-        models.CharField(max_length=12, null=False),
+        models.CharField(max_length=12, null=True),
         depends=[
             ('match_scores', ['player', 'game', 'match'])
         ]
     )
     def p2_score(self):
-        score=Score.objects.filter(player=self.p2, game=self.game, match=self).first()
+        score = Score.objects.filter(
+            player=self.p2, 
+            game=self.game, 
+            match__match_id=self.match_id
+        ).first()
         return score.score_formatted if score else None
+        
     p2_video_url = models.URLField(null=True, blank=True)
     
     # we make these null=True but we set them below
@@ -130,7 +140,7 @@ class Match(ComputedFieldsModel):
     p2_sigma_before = models.FloatField(null=False, blank=True)
         
     @computed(
-        models.FloatField(null=False, blank=True),
+        models.FloatField(null=True, blank=True),
         depends=[
             ('self', ['predictions'])
         ]
@@ -142,7 +152,7 @@ class Match(ComputedFieldsModel):
         return self.predictions['elo'][self.result][1][0] # [1][0] = [player 2][mu (as opposed to delta)]
     
     @computed(
-        models.FloatField(null=False, blank=True),
+        models.FloatField(null=True, blank=True),
         depends=[
             ('self', ['predictions'])
         ]
@@ -227,6 +237,10 @@ class Match(ComputedFieldsModel):
 
         if not self.pk: # if this is a newly created match
             
+            self.game.save()
+            self.p1.save()
+            self.p2.save()
+            
             p1_elo = Elo.objects.filter(player=self.p1, game=self.game).first()
             p2_elo = Elo.objects.filter(player=self.p2, game=self.game).first()
             
@@ -238,6 +252,9 @@ class Match(ComputedFieldsModel):
               
             self.p1_mu_before, self.p1_sigma_before = p1_elo.mu, p1_elo.sigma
             self.p2_mu_before, self.p2_sigma_before = p2_elo.mu, p2_elo.sigma
+            
+            self.p1.save()
+            self.p2.save()
             
         super().save(*args, **kwargs)
     
@@ -286,8 +303,8 @@ class Elo(models.Model):
     player = models.ForeignKey(Player, on_delete=models.CASCADE)
     game = models.ForeignKey(Game, on_delete=models.CASCADE)
     
-    mu = models.DecimalField(null=False, default=STARTING_ELO, max_digits=5, decimal_places=1)
-    sigma = models.DecimalField(null=False, default=STARTING_ELO/3, max_digits=5, decimal_places=2)
+    mu = models.FloatField(null=False, default=STARTING_ELO)
+    sigma = models.FloatField(null=False, default=STARTING_ELO/3)
     
     def __str__(self):
         return f"{self.player}:{self.game}:{'{:.1f}'.format(self.mu)} elo"

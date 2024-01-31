@@ -17,6 +17,8 @@ def create_match(p1, p2, game):
     p2.queueing_for = None
     p2.save()
     
+    game.save()
+    
     # start a match with both players
     return Match.objects.create(
         game=game,
@@ -82,8 +84,14 @@ def calculate_elo(p1_elo: tuple, p2_elo: tuple, result):
             
     model = MODEL
             
-    p1 = model.rating(mu=p1_elo[0], sigma=p1_elo[1])
-    p2 = model.rating(mu=p2_elo[0], sigma=p2_elo[1])
+    p1 = model.rating(
+        mu=p1_elo[0], 
+        sigma=p1_elo[1]
+    )
+    p2 = model.rating(
+        mu=p2_elo[0], 
+        sigma=p2_elo[1]
+    )
     
     teams = [ [p1], [p2] ]
     
