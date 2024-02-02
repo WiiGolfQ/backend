@@ -3,13 +3,11 @@ from django.db.models import Q
 
 # Create your views here.
 
-from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework import permissions
 from rest_framework import generics
 from rest_framework.exceptions import APIException
-from rest_framework.pagination import PageNumberPagination
 
 from .utils import create_match, assign_elo
 
@@ -193,13 +191,16 @@ class ReportScore(generics.RetrieveAPIView):
         match = self.get_object()
         
         discord_id = self.request.query_params.get("player", None)
+        
         score = self.request.query_params.get("score", None)
+        score = int(score) if score is not None else None
+        
+        if score < 0:
+            raise ValueError("Score must be a positive integer")
                 
         player = get_object_or_404(Player, discord_id=discord_id)
 
         if score is not None:
-            
-            score = int(score)
             
             if player != match.p1 and player != match.p2:
                 raise PlayerNotInMatch()
@@ -208,18 +209,21 @@ class ReportScore(generics.RetrieveAPIView):
             
             # we need to check if a score object already exists,
             # so we can either update it or create a new one
+                    
             if player_score:
-                print("updating score")
                 player_score.score = score
                 player_score.save()
             else:
-                print("creating score")
-                Score.objects.create(
+                new_score = Score.objects.create(
                     player=player,
                     game=match.game,
                     match=match,
                     score=score,
-                )   
+                )
+                
+                # hack to get the computed fields to update before returning the match
+                # TODO: try and find a way to delete this
+                match.save()
                 
         serializer = self.get_serializer(match)
         return Response(serializer.data)

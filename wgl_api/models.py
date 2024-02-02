@@ -73,7 +73,7 @@ class Match(ComputedFieldsModel):
     p1 = models.ForeignKey(Player, on_delete=models.CASCADE, related_name="p1")
     
     @computed(
-        models.CharField(max_length=12, null=True),
+        models.IntegerField(null=True, blank=True),
         depends=[
             ('match_scores', ['player', 'game', 'match'])
         ]
@@ -84,8 +84,22 @@ class Match(ComputedFieldsModel):
             game=self.game, 
             match__match_id=self.match_id
         ).first()
+        return score.score if score else None
+    
+    @computed(
+        models.CharField(max_length=12, null=True, blank=True),
+        depends=[
+            ('self', ['p1_score'])
+        ]
+    )
+    def p1_score_formatted(self):
+        score = Score.objects.filter(
+            player=self.p1, 
+            game=self.game, 
+            match__match_id=self.match_id
+        ).first()
         return score.score_formatted if score else None
-        # return "test"
+        
     p1_video_url = models.URLField(null=True, blank=True)
     
     # we set these values below
@@ -120,12 +134,26 @@ class Match(ComputedFieldsModel):
     p2 = models.ForeignKey(Player, on_delete=models.CASCADE, related_name="p2")
 
     @computed(
-        models.CharField(max_length=12, null=True),
+        models.IntegerField(null=True, blank=True),
         depends=[
             ('match_scores', ['player', 'game', 'match'])
         ]
     )
     def p2_score(self):
+        score = Score.objects.filter(
+            player=self.p2, 
+            game=self.game, 
+            match__match_id=self.match_id
+        ).first()
+        return score.score if score else None
+    
+    @computed(
+        models.CharField(max_length=12, null=True, blank=True),
+        depends=[
+            ('self', ['p2_score'])
+        ]
+    )
+    def p2_score_formatted(self):
         score = Score.objects.filter(
             player=self.p2, 
             game=self.game, 
@@ -220,14 +248,15 @@ class Match(ComputedFieldsModel):
         ("Waiting for livestreams", "Waiting for livestreams"),
         ("Waiting for agrees", "Waiting for agrees")
     ])
-    
-    contest_reason = models.CharField(max_length=64, null=True, blank=True)
-    
+        
     result = models.CharField(max_length=1, null=True, blank=True, choices=[
         ("1", "Player 1 wins"), 
         ("2", "Player 2 wins"), 
         ("D", "Draw"),
     ])
+    
+    contest_reason = models.CharField(max_length=64, null=True, blank=True)
+
     
     def __str__(self):
         return f"{self.match_id}: {self.p1} vs {self.p2} - {self.game.game_name}"
