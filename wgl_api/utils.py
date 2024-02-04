@@ -24,7 +24,6 @@ def create_match(p1, p2, game):
         game=game,
         p1=p1,
         p2=p2,
-        status="Ongoing",
     )
     
 
