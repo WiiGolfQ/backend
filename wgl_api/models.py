@@ -98,6 +98,7 @@ class Match(ComputedFieldsModel):
             game=self.game, 
             match__match_id=self.match_id
         ).first()
+                
         return score.score_formatted if score else None
         
     p1_video_url = models.URLField(null=True, blank=True)

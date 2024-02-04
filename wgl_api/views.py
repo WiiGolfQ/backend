@@ -213,6 +213,12 @@ class ReportScore(generics.RetrieveAPIView):
             if player_score:
                 player_score.score = score
                 player_score.save()
+                
+                # hack to get the computed fields to update before returning the match
+                # TODO: try and find a way to delete this
+                match = player_score.match
+                match.save()
+                
             else:
                 new_score = Score.objects.create(
                     player=player,
