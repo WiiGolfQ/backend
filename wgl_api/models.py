@@ -110,7 +110,7 @@ class Match(ComputedFieldsModel):
     @computed(
         models.FloatField(null=True, blank=True),
         depends=[
-            ('self', ['predictions'])
+            ('self', ['predictions', 'result'])
         ]
     )
     def p1_mu_after(self):
@@ -119,17 +119,17 @@ class Match(ComputedFieldsModel):
         
         return self.predictions['elo'][self.result][0][0] # [0][0] = [player 1][mu (as opposed to delta)]
     
-    @computed(
-        models.FloatField(null=True, blank=True),
-        depends=[
-            ('self', ['predictions'])
-        ]
-    )
-    def p1_sigma_after(self):
-        if self.p2_sigma_before is None or self.result is None:
-            return None
+    # @computed(
+    #     models.FloatField(null=True, blank=True),
+    #     depends=[
+    #         ('self', ['predictions'])
+    #     ]
+    # )
+    # def p1_sigma_after(self):
+    #     if self.p2_sigma_before is None or self.result is None:
+    #         return None
         
-        return self.predictions['sigma'][0]
+    #     return self.predictions['sigma'][0]
     
     
     p2 = models.ForeignKey(Player, on_delete=models.CASCADE, related_name="p2")
@@ -171,7 +171,7 @@ class Match(ComputedFieldsModel):
     @computed(
         models.FloatField(null=True, blank=True),
         depends=[
-            ('self', ['predictions'])
+            ('self', ['predictions', 'result'])
         ]
     )
     def p2_mu_after(self):
@@ -180,17 +180,17 @@ class Match(ComputedFieldsModel):
         
         return self.predictions['elo'][self.result][1][0] # [1][0] = [player 2][mu (as opposed to delta)]
     
-    @computed(
-        models.FloatField(null=True, blank=True),
-        depends=[
-            ('self', ['predictions'])
-        ]
-    )
-    def p2_sigma_after(self):
-        if self.p2_sigma_before is None or self.result is None:
-            return None
+    # @computed(
+    #     models.FloatField(null=True, blank=True),
+    #     depends=[
+    #         ('self', ['predictions'])
+    #     ]
+    # )
+    # def p2_sigma_after(self):
+    #     if self.p2_sigma_before is None or self.result is None:
+    #         return None
         
-        return self.predictions['sigma'][1]
+    #     return self.predictions['sigma'][1]
     
     @computed(
         models.JSONField(null=True, blank=True),
@@ -249,15 +249,43 @@ class Match(ComputedFieldsModel):
         ("Waiting for livestreams", "Waiting for livestreams"),
         ("Waiting for agrees", "Waiting for agrees")
     ])
-        
-    result = models.CharField(max_length=1, null=True, blank=True, choices=[
-        ("1", "Player 1 wins"), 
-        ("2", "Player 2 wins"), 
-        ("D", "Draw"),
+    
+    forfeited_player = models.CharField(max_length=1, null=True, blank=True, choices=[
+        ("1", "1"),
+        ("2", "2"),
     ])
+        
+    @computed(
+        models.CharField(max_length=1, null=True, blank=True, choices=[
+            ("1", "1"),
+            ("2", "2"),
+            ("D", "D"),
+        ]),
+        depends=[
+            ('self', ['p1_score', 'p2_score', 'forfeited_player'])
+        ]
+    )
+    def result(self):
+        p1_score = self.p1_score
+        p2_score = self.p2_score
+            
+        if self.forfeited_player is not None:
+            if self.forfeited_player == "1":
+                return "2"  # Player 2 wins
+            elif self.forfeited_player == "2":
+                return "1"  # Player 1 wins
+            
+        if p1_score is None or p2_score is None:
+            return None
+
+        if p1_score > p2_score:
+            return "1"  # Player 1 wins
+        elif p1_score < p2_score:
+            return "2"  # Player 2 wins
+        else:
+            return "D"
     
     contest_reason = models.CharField(max_length=64, null=True, blank=True)
-
     
     def __str__(self):
         return f"{self.match_id}: {self.p1} vs {self.p2} - {self.game.game_name}"

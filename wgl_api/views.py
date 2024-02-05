@@ -142,10 +142,13 @@ class MatchDetail(generics.RetrieveUpdateDestroyAPIView):
         match_id = self.kwargs.get('match_id')
         return get_object_or_404(Match, match_id=match_id)
     
-    # we need to override the update method to check for a change in result
+    # we need to override the update method to check for a change in status
     def update(self, request, *args, **kwargs):
         
         match = self.get_object()
+        
+        # we need this to check if we need to do the retroactive result change procedure 
+        old_status = match.status
         
         for field, value in request.data.items():
             if hasattr(match, field):
@@ -153,25 +156,45 @@ class MatchDetail(generics.RetrieveUpdateDestroyAPIView):
                     value = None
                 setattr(match, field, value)
 
-        match.save()
-
-        # check if result was updated by the request
-        result = request.data.get("result")
-
-        if result is not None:
-                                    
+        match.save() 
+        
+        print(match.result)
+        print(match.forfeited_player)
+        
+        # check if the status was updated to "Finished"
+        if match.status == "Finished":
+        
             # if the old match status was result contested
-            if match.status == "Result contested":
+            if old_status == "Result contested":
                                 
                 # retroactive result change procedure, just pass for now
                 pass
-                
+            
             else:
                 
-                # update the result (this will change elos automatically)
-                match.result = result
-                match.save()
+                # assign player elos based on the match result
                 assign_elo(match)
+                
+                
+              
+
+        # # check if result was updated by the request
+        # result = request.data.get("result")
+
+        # if result is not None:
+                                    
+        #     # if the old match status was result contested
+        #     if match.status == "Result contested":
+                                
+        #         # retroactive result change procedure, just pass for now
+        #         pass
+                
+        #     else:
+                
+        #         # update the result (this will change elos automatically)
+        #         match.result = result
+        #         match.save()
+        #         assign_elo(match)
             
         return super(MatchDetail, self).update(request, *args, **kwargs)
     

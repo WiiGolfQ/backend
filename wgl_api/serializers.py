@@ -69,6 +69,7 @@ class MatchSerializer(serializers.ModelSerializer):
             "p1", 
             "p2", 
             "result", 
+            "forfeited_player",
             "p1_score",
             "p1_score_formatted", 
             "p2_score", 
