@@ -61,9 +61,7 @@ def assign_elo(match):
         p1_elo = Elo.objects.create(player=p1, game=match.game)
     if not p2_elo:
         p2_elo = Elo.objects.create(player=p2, game=match.game)
-    
-    print(match.predictions)
-    
+        
     p1_elo.mu = match.p1_mu_after
     p1_elo.sigma = match.predictions.get('sigma')[0]
     p1_elo.save()

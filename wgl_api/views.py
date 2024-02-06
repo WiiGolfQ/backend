@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from django.shortcuts import get_object_or_404
 from django.db.models import Q
 
@@ -29,7 +31,7 @@ from .serializers import (
     ScoreSerializer,
 )
 
-from .paginations import LeaderboardPagination
+from .paginations import RankingPagination
 
 class ChangedQueueingFor(APIException):
     status_code = 400
@@ -156,13 +158,13 @@ class MatchDetail(generics.RetrieveUpdateDestroyAPIView):
                     value = None
                 setattr(match, field, value)
 
-        match.save() 
-        
-        print(match.result)
-        print(match.forfeited_player)
+        match.save()
         
         # check if the status was updated to "Finished"
         if match.status == "Finished":
+            
+            # update finish timestamp
+            match.timestamp_finished = datetime.now()
         
             # if the old match status was result contested
             if old_status == "Result contested":
@@ -174,10 +176,7 @@ class MatchDetail(generics.RetrieveUpdateDestroyAPIView):
                 
                 # assign player elos based on the match result
                 assign_elo(match)
-                
-                
-              
-
+            
         # # check if result was updated by the request
         # result = request.data.get("result")
 
@@ -346,7 +345,7 @@ class QueueAdd(generics.ListAPIView):
 class LeaderboardList(generics.ListAPIView):
     
     serializer_class = EloSerializer
-    pagination_class = LeaderboardPagination
+    # pagination_class = RankingPagination
     
     def get_object(self):
         game_id = self.kwargs.get('game_id')
@@ -361,6 +360,7 @@ class LeaderboardList(generics.ListAPIView):
 class ScoresList(generics.ListAPIView):
     
     serializer_class = ScoreSerializer
+    pagination_class = RankingPagination
     
     def get_object(self):
         
@@ -372,7 +372,14 @@ class ScoresList(generics.ListAPIView):
         
         game = self.get_object()
         
-        return Score.objects.filter(game=game, match__status="Finished").order_by('score')
+        scores = Score.objects.filter(game=game, match__status="Finished").order_by('score')
+            
+        return scores
+        
+        
+        
+        
+    
     
 class GameList(generics.ListAPIView):
         

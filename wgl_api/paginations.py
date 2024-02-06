@@ -1,4 +1,8 @@
-from rest_framework import pagination
+from rest_framework.pagination import PageNumberPagination
+from django.db.models import Window, F
+from django.db.models.functions import Rank
 
-class LeaderboardPagination(pagination.PageNumberPagination):
-    page_size = 25
+class RankingPagination(PageNumberPagination):
+    page_size = 10
+    
+    

@@ -1,7 +1,11 @@
 from django.db import models
 from django.core.validators import RegexValidator
+
+from django.db.models import Q, F
+
+from computedfields.models import ComputedFieldsModel, computed
+
 from .utils import calculate_elo, calculate_p1_win_prob, ms_to_time
-from computedfields.models import ComputedFieldsModel, computed, compute
 
 # Create your models here.
 
@@ -59,7 +63,7 @@ class Match(ComputedFieldsModel):
     class Meta:
         constraints = [
             # checks that player 1 and 2 are different
-            models.CheckConstraint(check=~models.Q(p1=models.F('p2')), name='different_players'),
+            models.CheckConstraint(check=~Q(p1=F('p2')), name='different_players'),
         ]
     
     match_id = models.AutoField(primary_key=True)
@@ -278,9 +282,9 @@ class Match(ComputedFieldsModel):
         if p1_score is None or p2_score is None:
             return None
 
-        if p1_score > p2_score:
+        if p1_score < p2_score:
             return "1"  # Player 1 wins
-        elif p1_score < p2_score:
+        elif p1_score > p2_score:
             return "2"  # Player 2 wins
         else:
             return "D"
@@ -324,7 +328,7 @@ class Score(ComputedFieldsModel):
     game = models.ForeignKey(Game, on_delete=models.CASCADE, null=False)
     match = models.ForeignKey("Match", related_name="match_scores", on_delete=models.CASCADE, blank=True)
     
-    score = models.IntegerField(null=False)
+    score = models.IntegerField(null=False, db_index=True)
     
     @computed(
         models.CharField(max_length=12, null=False),
@@ -337,7 +341,7 @@ class Score(ComputedFieldsModel):
         if self.game.speedrun:
             return ms_to_time(self.score)
         else:
-            score = score - 72
+            score = self.score - 72
             
             if score > 0:
                 return f"+{score}"
@@ -346,10 +350,12 @@ class Score(ComputedFieldsModel):
             else:
                 return f"{score}"
                 
-    
-    video_url = models.URLField(null=True)
     verified = models.BooleanField(null=False, default=True)
     
+    # overall_rank = models.IntegerField(null=False, blank=True)
+    # player_rank = models.IntegerField(null=False, blank=True)
+    # best_rank = models.IntegerField(null=True, blank=True)
+                
     def __str__(self):
         return f"{self.player}:{self.game}:{self.score_formatted}"
     
