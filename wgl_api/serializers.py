@@ -104,6 +104,20 @@ class EloSerializer(serializers.ModelSerializer):
         
 class ScoreSerializer(serializers.ModelSerializer):
     player = PlayerSerializer(read_only=True)
+    
+    player_rank = serializers.SerializerMethodField()
+    overall_rank = serializers.SerializerMethodField()
+    non_obsolete_rank = serializers.SerializerMethodField()
+    
     class Meta:
         model = Score
-        fields = ["player", "score", "score_formatted", "match"]
+        fields = ["player", "score", "score_formatted", "match", 'player_rank', 'overall_rank', 'non_obsolete_rank']
+
+    def get_player_rank(self, obj):
+        return getattr(obj, 'player_rank', None)
+
+    def get_overall_rank(self, obj):
+        return getattr(obj, 'overall_rank', None)
+
+    def get_non_obsolete_rank(self, obj):
+        return getattr(obj, 'non_obsolete_rank', None)
