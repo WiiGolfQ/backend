@@ -98,9 +98,14 @@ class ChallengeSerializer(serializers.ModelSerializer):
         
 class EloSerializer(serializers.ModelSerializer):
     player = PlayerSerializer(read_only=True)
+    rank = serializers.SerializerMethodField()    
+    
     class Meta:
         model = Elo
-        fields = ["player", "mu"]
+        fields = ["rank", "player", "mu"]
+        
+    def get_rank(self, obj):
+        return obj.rank
         
 class ScoreSerializer(serializers.ModelSerializer):
     player = PlayerSerializer(read_only=True)

@@ -1,7 +1,9 @@
 from datetime import datetime
 
 from django.shortcuts import get_object_or_404
-from django.db.models import Q
+from django.db.models import Q, F
+from django.db.models.expressions import Window
+from django.db.models.functions import Rank
 
 # Create your views here.
 
@@ -355,8 +357,10 @@ class LeaderboardList(generics.ListAPIView):
         
         game = self.get_object()
         
-        return Elo.objects.filter(game=game).order_by('-mu')
-    
+        return Elo.objects.filter(game=game).annotate(
+            rank=Window(expression=Rank(), 
+                        order_by=F('mu').desc()
+        ))    
 class ScoresList(generics.ListAPIView):
     
     serializer_class = ScoreSerializer
