@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from django.shortcuts import get_object_or_404
-from django.db.models import Window, F, Q, Case, When, Value, IntegerField, Subquery
+from django.db.models import Window, F, Q, Case, When, Value, IntegerField, Subquery, OuterRef
 from django.db.models.functions import Rank
 
 # Create your views here.
@@ -429,7 +429,25 @@ class ScoresList(generics.ListAPIView):
                 ),
             )
         else:
-            scores = scores.filter(player_rank=1)
+            
+            # TODO: change to use .distinct when i change the database to postgres
+            # scores = scores.filter(player_rank=1).order_by('player').distinct('player').annotate(
+            #     non_obsolete_rank=Value(None, output_field=IntegerField())
+            # )
+            
+            best_scores_per_player = Score.objects.filter(player=OuterRef('player')).order_by('player')
+
+            scores = (
+                scores
+                .filter(pk__in=Subquery(best_scores_per_player.values('pk')[:1])) # return 1 per player
+                .annotate(
+                    non_obsolete_rank=Window(
+                        expression=Rank(),
+                        order_by=F('score').asc(),
+                    )
+                )
+            )
+            
 
                       
         return scores
