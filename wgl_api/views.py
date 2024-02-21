@@ -1,8 +1,7 @@
 from datetime import datetime
 
 from django.shortcuts import get_object_or_404
-from django.db.models import Q, F
-from django.db.models.expressions import Window
+from django.db.models import Window, F, Q, Case, When, Value, IntegerField, Subquery
 from django.db.models.functions import Rank
 
 # Create your views here.
@@ -376,8 +375,63 @@ class ScoresList(generics.ListAPIView):
         
         game = self.get_object()
         
-        scores = Score.objects.filter(game=game, match__status="Finished").order_by('score')
+        
+        """
+        temporary score ranking code.
+        planning on replacing this with custom logic
+        
+        because i dont want to run the window functions
+        every time someone wants a score list, or a single score
+        """
+        
+        player = self.request.query_params.get("player", None)
+        obsolete = self.request.query_params.get("obsolete", None)
+                
+        # annotate an overall_rank onto all scores
+        scores = Score.objects.filter(game=game, match__status="Finished").order_by('score').annotate(
+            overall_rank=Window(
+                expression=Rank(),
+                order_by=F('score').asc(),
+            ),
+        )
+        
+        if player:
+            # if we are filtering by player then filter them out first so ranking is a bit more efficient
+            scores = scores.filter(player__discord_id=player)
+            scores = scores.annotate(
+                player_rank=Window(
+                    expression=Rank(),
+                    order_by=F('score').asc(),
+                ),
+            )
+        else:
+            scores = scores.annotate(
+                player_rank=Window(
+                    expression=Rank(),
+                    order_by=F('score').asc(),
+                    partition_by=F('player'),
+                ),
+            )
             
+        if obsolete is not None and player is None: # if we want to show obsolete scores
+            
+            non_obsolete_scores = scores.filter(player_rank=1)
+                
+            # rank non obsolete scores
+            scores = scores.annotate(
+                non_obsolete_rank=Case(
+                    When(player_rank=1, then=Subquery(
+                        non_obsolete_scores.values('overall_rank')[:1],
+                        output_field=IntegerField()
+                    )),
+                    default=Value(None),
+                    output_field=IntegerField(),
+                ),
+            )
+        else:
+            scores = scores.filter(player_rank=1)
+
+                      
         return scores
         
         
