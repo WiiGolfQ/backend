@@ -356,8 +356,10 @@ class LeaderboardList(generics.ListAPIView):
         
         game = self.get_object()
         
-        return Elo.objects.filter(game=game).order_by('-mu')
-    
+        return Elo.objects.filter(game=game).annotate(
+            rank=Window(expression=Rank(), 
+                        order_by=F('mu').desc()
+        ))    
 class ScoresList(generics.ListAPIView):
     
     serializer_class = ScoreSerializer
@@ -372,6 +374,15 @@ class ScoresList(generics.ListAPIView):
     def get_queryset(self):
         
         game = self.get_object()
+        
+        
+        """
+        temporary score ranking code.
+        planning on replacing this with custom logic
+        
+        because i dont want to run the window functions
+        every time someone wants a score list, or a single score
+        """
         
         player = self.request.query_params.get("player", None)
         obsolete = self.request.query_params.get("obsolete", None)
