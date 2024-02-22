@@ -401,36 +401,46 @@ class ScoresList(generics.ListAPIView):
                 partition_by=F('player'),
             ),
         )
+                
+        # filter by every player's best score
+        # (1 per player because of ties)
+        best_scores_per_player = scores.filter(
+            pk__in=Subquery(
+                scores.filter(
+                    player=OuterRef('player'),
+                    player_rank=1,
+                ).values('pk')[:1]
+            )
+        )
         
-        best_scores_per_player = scores.filter(player_rank=1)
-            
+        # annotate a non_obsolete_rank onto all best scores per player, else null
         scores = scores.annotate(
             non_obsolete_rank=Case(
-                When(player_rank=1, then=Subquery(
-                    best_scores_per_player.values('overall_rank')[:1], # return 1 per player because of ties
-                    output_field=IntegerField()
+                When(pk__in=Subquery(best_scores_per_player.values('pk')), then=Window(
+                    expression=Rank(),
+                    order_by=F('score').asc(),
                 )),
                 default=Value(None),
                 output_field=IntegerField(),
-            ),
+            )
         )
         
         # create a cte so that we don't affect the ranks we just made
         cte = With(scores)
         scores = cte.queryset().with_cte(cte)
                 
-                
-                
-        if player:
+        if player is not None:
             scores = scores.filter(player__discord_id=player)
             
-        if obsolete is not None and player is None: # if we don't want to show obsolete scores
-            scores = scores.filter(player_rank=1)
+        if obsolete is None and player is None: # if we don't want to show obsolete scores
+            # only show ones that have a non-obsolete rank
+            scores = scores.filter(non_obsolete_rank__isnull=False)
+            
+            
+        return scores
             
 
-                      
-        return scores
-        
+            
         
         
         
