@@ -4,7 +4,7 @@ from django.shortcuts import get_object_or_404
 from django.db.models import Window, F, Q, Case, When, Value, IntegerField, Subquery, OuterRef
 from django.db.models.functions import Rank
 
-# Create your views here.
+from django_cte import With
 
 from rest_framework.response import Response
 from rest_framework import status
@@ -389,66 +389,43 @@ class ScoresList(generics.ListAPIView):
         player = self.request.query_params.get("player", None)
         obsolete = self.request.query_params.get("obsolete", None)
                 
-        # annotate an overall_rank onto all scores
+        # annotate an overall_rank and player_rank onto all scores
         scores = Score.objects.filter(game=game, match__status="Finished").order_by('score').annotate(
             overall_rank=Window(
                 expression=Rank(),
                 order_by=F('score').asc(),
             ),
+            player_rank=Window(
+                expression=Rank(),
+                order_by=F('score').asc(),
+                partition_by=F('player'),
+            ),
         )
         
-        if player:
-            # if we are filtering by player then filter them out first so ranking is a bit more efficient
-            scores = scores.filter(player__discord_id=player)
-            scores = scores.annotate(
-                player_rank=Window(
-                    expression=Rank(),
-                    order_by=F('score').asc(),
-                ),
-            )
-        else:
-            scores = scores.annotate(
-                player_rank=Window(
-                    expression=Rank(),
-                    order_by=F('score').asc(),
-                    partition_by=F('player'),
-                ),
-            )
+        best_scores_per_player = scores.filter(player_rank=1)
             
-        if obsolete is not None and player is None: # if we want to show obsolete scores
-            
-            non_obsolete_scores = scores.filter(player_rank=1)
+        scores = scores.annotate(
+            non_obsolete_rank=Case(
+                When(player_rank=1, then=Subquery(
+                    best_scores_per_player.values('overall_rank')[:1], # return 1 per player because of ties
+                    output_field=IntegerField()
+                )),
+                default=Value(None),
+                output_field=IntegerField(),
+            ),
+        )
+        
+        # create a cte so that we don't affect the ranks we just made
+        cte = With(scores)
+        scores = cte.queryset().with_cte(cte)
                 
-            # rank non obsolete scores
-            scores = scores.annotate(
-                non_obsolete_rank=Case(
-                    When(player_rank=1, then=Subquery(
-                        non_obsolete_scores.values('overall_rank')[:1],
-                        output_field=IntegerField()
-                    )),
-                    default=Value(None),
-                    output_field=IntegerField(),
-                ),
-            )
-        else:
+                
+                
+        if player:
+            scores = scores.filter(player__discord_id=player)
             
-            # TODO: change to use .distinct when i change the database to postgres
-            # scores = scores.filter(player_rank=1).order_by('player').distinct('player').annotate(
-            #     non_obsolete_rank=Value(None, output_field=IntegerField())
-            # )
-            
-            best_scores_per_player = Score.objects.filter(player=OuterRef('player')).order_by('player')
-
-            scores = (
-                scores
-                .filter(pk__in=Subquery(best_scores_per_player.values('pk')[:1])) # return 1 per player
-                .annotate(
-                    non_obsolete_rank=Window(
-                        expression=Rank(),
-                        order_by=F('score').asc(),
-                    )
-                )
-            )
+        if obsolete is not None and player is None: # if we don't want to show obsolete scores
+            scores = scores.filter(player_rank=1)
             
 
                       

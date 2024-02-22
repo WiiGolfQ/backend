@@ -3,6 +3,8 @@ from django.core.validators import RegexValidator
 
 from django.db.models import Q, F
 
+from django_cte import CTEManager
+
 from computedfields.models import ComputedFieldsModel, computed
 
 from .utils import calculate_elo, calculate_p1_win_prob, ms_to_time
@@ -320,7 +322,10 @@ class Match(ComputedFieldsModel):
             
         super().save(*args, **kwargs)
     
-class Score(ComputedFieldsModel):   
+class Score(ComputedFieldsModel):
+    
+    #delete when custom logic for ranking is made
+    objects = CTEManager()
     
     score_id = models.AutoField(primary_key=True) 
     
