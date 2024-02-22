@@ -346,7 +346,7 @@ class QueueAdd(generics.ListAPIView):
 class LeaderboardList(generics.ListAPIView):
     
     serializer_class = EloSerializer
-    # pagination_class = RankingPagination
+    pagination_class = RankingPagination
     
     def get_object(self):
         game_id = self.kwargs.get('game_id')
@@ -359,7 +359,9 @@ class LeaderboardList(generics.ListAPIView):
         return Elo.objects.filter(game=game).annotate(
             rank=Window(expression=Rank(), 
                         order_by=F('mu').desc()
-        ))    
+            ) 
+        ).order_by('-mu')
+        
 class ScoresList(generics.ListAPIView):
     
     serializer_class = ScoreSerializer
