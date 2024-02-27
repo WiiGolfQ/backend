@@ -24,7 +24,7 @@ from .models import (
 )
 
 from .serializers import (
-    FullGameSerializer,
+    GameSerializer,
     MatchSerializer,
     FullPlayerSerializer,
     ChallengeSerializer,
@@ -448,7 +448,7 @@ class ScoresList(generics.ListAPIView):
     
 class GameList(generics.ListAPIView):
         
-    serializer_class = FullGameSerializer
+    serializer_class = GameSerializer
     
     def get_queryset(self):
         return Game.objects.all()

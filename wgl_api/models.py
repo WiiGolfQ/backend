@@ -50,7 +50,8 @@ class Game(models.Model):
     # it might be a good idea to have the discord bot store all games in memory on_ready
     # and have a slash command to update them in case of a change
     
-    game_id = models.AutoField(primary_key=True) 
+    game_id = models.AutoField(primary_key=True)
+    shortcode = models.CharField(max_length=20, null=False, unique=True)
     game_name = models.CharField(max_length=64, null=False)
     
     speedrun = models.BooleanField(null=False, default=True)

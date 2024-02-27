@@ -41,16 +41,11 @@ class PlayerSerializer(serializers.ModelSerializer):
             "username",
             "yt_username",
         ]
-
-class FullGameSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Game
-        fields = ["game_id", "game_name", "speedrun", "require_livestream", "best_of"]
         
 class GameSerializer(serializers.ModelSerializer):
     class Meta:
         model = Game
-        fields = ["game_id", "game_name"]
+        fields = ["game_id", "shortcode", "game_name", "speedrun"]
         
 class MatchSerializer(serializers.ModelSerializer):
     game = GameSerializer(read_only=True)
