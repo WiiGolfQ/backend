@@ -55,8 +55,6 @@ class Game(models.Model):
     game_name = models.CharField(max_length=64, null=False)
     
     speedrun = models.BooleanField(null=False, default=True)
-    require_livestream = models.BooleanField(null=False, default=True)
-    best_of = models.SmallIntegerField(null=False, default=1)
     
     def __str__(self):
         return f"{self.game_name}" 
