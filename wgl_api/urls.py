@@ -21,7 +21,7 @@ urlpatterns = [
     path('match/<int:match_id>', MatchDetail.as_view()),
     path('challenge/', ChallengeList.as_view()),
     path('challenge/<int:challenge_id>', ChallengeDetail.as_view()),
-    path('queue/<int:game_id>/', QueueList.as_view()),
+    path('queue/<int:game_id>', QueueList.as_view()),
     path('queue/<int:game_id>/<int:discord_id>', QueueAdd.as_view()),
     path('leaderboard/<int:game_id>', LeaderboardList.as_view()),
     path('scores/<int:game_id>', ScoresList.as_view()),
