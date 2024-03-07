@@ -404,14 +404,7 @@ class ScoresList(generics.ListAPIView):
                 
         # filter by every player's best score
         # (1 per player because of ties)
-        best_scores_per_player = scores.filter(
-            pk__in=Subquery(
-                scores.filter(
-                    player=OuterRef('player'),
-                    player_rank=1,
-                ).values('pk')[:1]
-            )
-        )
+        best_scores_per_player = scores.order_by('player', '-score').distinct('player')
         
         # annotate a non_obsolete_rank onto all best scores per player, else null
         scores = scores.annotate(
@@ -435,7 +428,6 @@ class ScoresList(generics.ListAPIView):
         if obsolete is None and player is None: # if we don't want to show obsolete scores
             # only show ones that have a non-obsolete rank
             scores = scores.filter(non_obsolete_rank__isnull=False)
-            
             
         return scores
             
