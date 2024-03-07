@@ -90,8 +90,8 @@ DATABASES = {
         # 'NAME': BASE_DIR / 'db.sqlite3',
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'wgq_db',
-        'USER': env['DB_USER'],
-        'PASSWORD': env['DB_PASS'],
+        'USER': 'postgres',
+        'PASSWORD': 'postgres', # dont do this in production lol
         'HOST': 'postgres-container',
         'PORT': '5432',
     }
