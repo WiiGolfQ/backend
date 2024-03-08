@@ -1,3 +1,13 @@
+import os
+
+def get_secret(key, default):
+    value = os.getenv(key, default)
+    if os.path.isfile(value):
+        with open(value) as f:
+            return f.read()
+    return value
+
+
 """
 Django settings for wgl_backend project.
 
@@ -20,13 +30,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-klv8cuwz#(l(_8y=5**@h%k5bq5oae4_voh@t8g+t^m3y!4n78'
+SECRET_KEY = get_secret('DJANGO_SECRET', None)
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
 
-ALLOWED_HOSTS = ["backend-container", "localhost",]
+ALLOWED_HOSTS = ["backend", "localhost", "127.0.0.1"]
 
 
 # Application definition
@@ -84,9 +94,9 @@ DATABASES = {
         # 'ENGINE': 'django.db.backends.sqlite3',
         # 'NAME': BASE_DIR / 'db.sqlite3',
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'postgres',
-        'USER': 'postgres',
-        'PASSWORD': 'postgres', # dont do this in production lol
+        'NAME': get_secret('POSTGRES_DB', 'db'),
+        'USER': get_secret('POSTGRES_USER', 'postgres'),
+        'PASSWORD': get_secret('POSTGRES_PASSWORD', 'postgres'),
         'HOST': 'db',
         'PORT': '5432',
     }
