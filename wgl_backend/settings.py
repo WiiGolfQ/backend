@@ -1,5 +1,8 @@
 import os
 
+from dotenv import load_dotenv
+load_dotenv()
+
 def get_secret(key, default):
     value = os.getenv(key, default)
     if os.path.isfile(value):
