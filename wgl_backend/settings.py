@@ -92,13 +92,10 @@ DATABASES = {
         'NAME': 'postgres',
         'USER': 'postgres',
         'PASSWORD': 'postgres', # dont do this in production lol
-        'HOST': 'postgres-container',
+        'HOST': 'db',
         'PORT': '5432',
     }
 }
-
-print(DATABASES)
-
 
 # Password validation
 # https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators
