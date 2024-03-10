@@ -136,6 +136,10 @@ class MatchList(generics.ListCreateAPIView):
         if game_id is not None:
             queryset = queryset.filter(game=game_id)
             
+        active = self.request.query_params.get("active", None)
+        if active is not None:
+            queryset = queryset.filter(active=True)
+            
         return queryset
 
 class MatchDetail(generics.RetrieveUpdateDestroyAPIView):
