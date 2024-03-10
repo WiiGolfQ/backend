@@ -342,11 +342,11 @@ class Score(ComputedFieldsModel):
     )
     def score_formatted(self):
         
+        score = self.score
+        
         if self.game.speedrun:
-            return ms_to_time(self.score)
-        else:
-            score = self.score - 72
-            
+            return ms_to_time(score)
+        else: # it is a score category  
             if score > 0:
                 return f"+{score}"
             elif score == 0:

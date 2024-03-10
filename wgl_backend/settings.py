@@ -33,7 +33,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = get_secret('DJANGO_SECRET', None)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = get_secret('DEBUG', 'False') == 'True'
 
 
 ALLOWED_HOSTS = ["backend", "localhost", "127.0.0.1"]
@@ -91,8 +91,6 @@ WSGI_APPLICATION = 'wgl_backend.wsgi.application'
 
 DATABASES = {
     'default': {
-        # 'ENGINE': 'django.db.backends.sqlite3',
-        # 'NAME': BASE_DIR / 'db.sqlite3',
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': get_secret('POSTGRES_DB', 'db'),
         'USER': get_secret('POSTGRES_USER', 'postgres'),
@@ -103,7 +101,8 @@ DATABASES = {
 }
 
 if DEBUG:
-    print(DATABASES)
+    DATABASES['default']['NAME'] = 'postgres'
+    DATABASES['default']['HOST'] = 'localhost'
 
 # Password validation
 # https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators
