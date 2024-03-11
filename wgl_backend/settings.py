@@ -36,7 +36,7 @@ SECRET_KEY = get_secret('DJANGO_SECRET', None)
 DEBUG = get_secret('DEBUG', 'False') == 'True'
 
 
-ALLOWED_HOSTS = ["backend", "localhost", "127.0.0.1"]
+ALLOWED_HOSTS = ["backend", "localhost", "127.0.0.1", "64.112.124.246", "four.courses"]
 
 
 # Application definition

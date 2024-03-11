@@ -140,7 +140,7 @@ class MatchList(generics.ListCreateAPIView):
         if active is not None:
             queryset = queryset.filter(active=True)
             
-        return queryset
+        return queryset.order_by('-timestamp_started')
 
 class MatchDetail(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = MatchSerializer
@@ -208,7 +208,6 @@ class ReportScore(generics.RetrieveAPIView):
     
     # either create a new score or update an existing one
     
-    
     def get_object(self):
         match_id = self.kwargs.get('match_id')
         return get_object_or_404(Match, match_id=match_id)
@@ -218,13 +217,10 @@ class ReportScore(generics.RetrieveAPIView):
         match = self.get_object()
         
         discord_id = self.request.query_params.get("player", None)
-        
+                
         score = self.request.query_params.get("score", None)
         score = int(score) if score is not None else None
         
-        if score < 0:
-            raise ValueError("Score must be a positive integer")
-                
         player = get_object_or_404(Player, discord_id=discord_id)
 
         if score is not None:
