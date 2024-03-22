@@ -33,7 +33,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = get_secret('DJANGO_SECRET', None)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = get_secret('DEBUG', 'False') == 'True'
+debug_value = get_secret('DEBUG', True)
+DEBUG = debug_value.lower() == 'true'
 
 
 ALLOWED_HOSTS = ["*"]
@@ -95,7 +96,7 @@ DATABASES = {
         'NAME': get_secret('POSTGRES_DB', 'db'),
         'USER': get_secret('POSTGRES_USER', 'postgres'),
         'PASSWORD': get_secret('POSTGRES_PASSWORD', 'postgres'),
-        'HOST': 'db',
+        'HOST': get_secret('POSTGRES_HOST', 'db'),
         'PORT': '5432',
     }
 }
