@@ -1,4 +1,4 @@
-from openskill.models import PlackettLuce
+from openskill.models import BradleyTerryFull
 
 def create_match(p1, p2, game):
     
@@ -40,7 +40,7 @@ this match was a 2v2. p1/p2 got 1st, p3/p4 got 2nd
 
 STARTING_ELO = 1500
 
-MODEL = PlackettLuce(
+MODEL = BradleyTerryFull(
     mu = STARTING_ELO,
     sigma = STARTING_ELO / 3,
     beta = STARTING_ELO / 6,
