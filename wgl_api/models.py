@@ -47,9 +47,6 @@ class Player(ComputedFieldsModel):
     
 class Game(models.Model):
     
-    # it might be a good idea to have the discord bot store all games in memory on_ready
-    # and have a slash command to update them in case of a change
-    
     game_id = models.AutoField(primary_key=True)
     shortcode = models.CharField(max_length=20, null=False, unique=True)
     game_name = models.CharField(max_length=64, null=False)
@@ -58,6 +55,65 @@ class Game(models.Model):
     
     def __str__(self):
         return f"{self.game_name}" 
+    
+class TeamPlayer(ComputedFieldsModel):
+    player = models.ForeignKey(Player, on_delete=models.CASCADE)
+    
+    score = models.IntegerField(null=True)
+    score_formatted = models.CharField(max_length=12, null=True) # temp
+    
+    video_id = models.CharField(max_length=11, null=True)
+    video_timestamp = models.IntegerField(null=True)
+    
+    mu_before = models.FloatField(null=False)
+    mu_after = models.FloatField(null=True)
+    
+    sigma_before = models.FloatField(null=False)
+    
+    @computed(
+        models.JSONField(null=True, blank=True),
+        depends=[
+            ('self', ['mu_before', 'sigma_before']) # TODO: change to also depend on other teams in the match's elo
+        ]
+    )
+    def predictions(self):
+        return {
+            "elo": {
+                1: (1234, "+123"),
+            }
+        }
+    
+    
+class Team(ComputedFieldsModel):
+    match = models.ForeignKey("Match", on_delete=models.CASCADE)
+    team_num = models.SmallIntegerField(null=False, default=1)
+    
+    players = models.ManyToManyField(TeamPlayer)
+    player_ids = models.JSONField(null=False, default=list) # temp
+    
+    place = models.SmallIntegerField(null=True) # temp
+    score = models.IntegerField(null=True)
+    score_formatted = models.CharField(max_length=12, null=True) # temp
+    
+    forfieted = models.BooleanField(null=False, default=False)
+    
+    @computed(
+        models.JSONField(null=True, blank=True),
+        depends=[
+            ('self', ['players']) # TODO: change dependencies
+        ]
+    )
+    def predictions(self):
+        return {
+            "place_prob": {
+                1: 1.0,
+            }
+        }
+    
+    
+    
+    
+    
     
 class Match(ComputedFieldsModel):
     
@@ -75,174 +131,178 @@ class Match(ComputedFieldsModel):
     timestamp_started = models.DateTimeField(auto_now_add=True)
     timestamp_finished = models.DateTimeField(null=True, blank=True)
     
-    p1 = models.ForeignKey(Player, on_delete=models.CASCADE, related_name="p1")
+    num_teams = models.SmallIntegerField(null=False, default=2)
+    players_per_team = models.SmallIntegerField(null=False, default=1)
+    teams = models.ManyToManyField(Team)
     
-    @computed(
-        models.IntegerField(null=True, blank=True),
-        depends=[
-            ('match_scores', ['player', 'game', 'match'])
-        ]
-    )
-    def p1_score(self):
-        score = Score.objects.filter(
-            player=self.p1, 
-            game=self.game, 
-            match__match_id=self.match_id
-        ).first()
-        return score.score if score else None
+    # p1 = models.ForeignKey(Player, on_delete=models.CASCADE, related_name="p1")
     
-    @computed(
-        models.CharField(max_length=12, null=True, blank=True),
-        depends=[
-            ('self', ['p1_score'])
-        ]
-    )
-    def p1_score_formatted(self):
-        score = Score.objects.filter(
-            player=self.p1, 
-            game=self.game, 
-            match__match_id=self.match_id
-        ).first()
+    # @computed(
+    #     models.IntegerField(null=True, blank=True),
+    #     depends=[
+    #         ('match_scores', ['player', 'game', 'match'])
+    #     ]
+    # )
+    # def p1_score(self):
+    #     score = Score.objects.filter(
+    #         player=self.p1, 
+    #         game=self.game, 
+    #         match__match_id=self.match_id
+    #     ).first()
+    #     return score.score if score else None
+    
+    # @computed(
+    #     models.CharField(max_length=12, null=True, blank=True),
+    #     depends=[
+    #         ('self', ['p1_score'])
+    #     ]
+    # )
+    # def p1_score_formatted(self):
+    #     score = Score.objects.filter(
+    #         player=self.p1, 
+    #         game=self.game, 
+    #         match__match_id=self.match_id
+    #     ).first()
                 
-        return score.score_formatted if score else None
+    #     return score.score_formatted if score else None
         
-    p1_video_url = models.URLField(null=True, blank=True)
+    # p1_video_url = models.URLField(null=True, blank=True)
     
-    # we set these values below
-    p1_mu_before = models.FloatField(null=False, blank=True)
-    p1_sigma_before = models.FloatField(null=False, blank=True)
-    
-    @computed(
-        models.FloatField(null=True, blank=True),
-        depends=[
-            ('self', ['predictions', 'result'])
-        ]
-    )
-    def p1_mu_after(self):
-        if self.p1_mu_before is None or self.result is None:
-            return None
-        
-        return self.predictions['elo'][self.result][0][0] # [0][0] = [player 1][mu (as opposed to delta)]
+    # # we set these values below
+    # p1_mu_before = models.FloatField(null=False, blank=True)
+    # p1_sigma_before = models.FloatField(null=False, blank=True)
     
     # @computed(
     #     models.FloatField(null=True, blank=True),
     #     depends=[
-    #         ('self', ['predictions'])
+    #         ('self', ['predictions', 'result'])
     #     ]
     # )
-    # def p1_sigma_after(self):
-    #     if self.p2_sigma_before is None or self.result is None:
+    # def p1_mu_after(self):
+    #     if self.p1_mu_before is None or self.result is None:
     #         return None
         
-    #     return self.predictions['sigma'][0]
+    #     return self.predictions['elo'][self.result][0][0] # [0][0] = [player 1][mu (as opposed to delta)]
+    
+    # # @computed(
+    # #     models.FloatField(null=True, blank=True),
+    # #     depends=[
+    # #         ('self', ['predictions'])
+    # #     ]
+    # # )
+    # # def p1_sigma_after(self):
+    # #     if self.p2_sigma_before is None or self.result is None:
+    # #         return None
+        
+    # #     return self.predictions['sigma'][0]
     
     
-    p2 = models.ForeignKey(Player, on_delete=models.CASCADE, related_name="p2")
+    # p2 = models.ForeignKey(Player, on_delete=models.CASCADE, related_name="p2")
 
-    @computed(
-        models.IntegerField(null=True, blank=True),
-        depends=[
-            ('match_scores', ['player', 'game', 'match'])
-        ]
-    )
-    def p2_score(self):
-        score = Score.objects.filter(
-            player=self.p2, 
-            game=self.game, 
-            match__match_id=self.match_id
-        ).first()
-        return score.score if score else None
+    # @computed(
+    #     models.IntegerField(null=True, blank=True),
+    #     depends=[
+    #         ('match_scores', ['player', 'game', 'match'])
+    #     ]
+    # )
+    # def p2_score(self):
+    #     score = Score.objects.filter(
+    #         player=self.p2, 
+    #         game=self.game, 
+    #         match__match_id=self.match_id
+    #     ).first()
+    #     return score.score if score else None
     
-    @computed(
-        models.CharField(max_length=12, null=True, blank=True),
-        depends=[
-            ('self', ['p2_score'])
-        ]
-    )
-    def p2_score_formatted(self):
-        score = Score.objects.filter(
-            player=self.p2, 
-            game=self.game, 
-            match__match_id=self.match_id
-        ).first()
-        return score.score_formatted if score else None
+    # @computed(
+    #     models.CharField(max_length=12, null=True, blank=True),
+    #     depends=[
+    #         ('self', ['p2_score'])
+    #     ]
+    # )
+    # def p2_score_formatted(self):
+    #     score = Score.objects.filter(
+    #         player=self.p2, 
+    #         game=self.game, 
+    #         match__match_id=self.match_id
+    #     ).first()
+    #     return score.score_formatted if score else None
         
-    p2_video_url = models.URLField(null=True, blank=True)
+    # p2_video_url = models.URLField(null=True, blank=True)
     
-    # we make these null=True but we set them below
-    p2_mu_before = models.FloatField(null=False, blank=True)
-    p2_sigma_before = models.FloatField(null=False, blank=True)
+    # # we make these null=True but we set them below
+    # p2_mu_before = models.FloatField(null=False, blank=True)
+    # p2_sigma_before = models.FloatField(null=False, blank=True)
         
-    @computed(
-        models.FloatField(null=True, blank=True),
-        depends=[
-            ('self', ['predictions', 'result'])
-        ]
-    )
-    def p2_mu_after(self):
-        if self.p2_mu_before is None or self.result is None:
-            return None
-        
-        return self.predictions['elo'][self.result][1][0] # [1][0] = [player 2][mu (as opposed to delta)]
-    
     # @computed(
     #     models.FloatField(null=True, blank=True),
     #     depends=[
-    #         ('self', ['predictions'])
+    #         ('self', ['predictions', 'result'])
     #     ]
     # )
-    # def p2_sigma_after(self):
-    #     if self.p2_sigma_before is None or self.result is None:
+    # def p2_mu_after(self):
+    #     if self.p2_mu_before is None or self.result is None:
     #         return None
         
-    #     return self.predictions['sigma'][1]
+    #     return self.predictions['elo'][self.result][1][0] # [1][0] = [player 2][mu (as opposed to delta)]
     
-    @computed(
-        models.JSONField(null=True, blank=True),
-        depends=[
-            ('self', ['p1_mu_before', 'p1_sigma_before', 'p2_mu_before', 'p2_sigma_before'])
-        ]
-    )
-    def predictions(self):
+    # # @computed(
+    # #     models.FloatField(null=True, blank=True),
+    # #     depends=[
+    # #         ('self', ['predictions'])
+    # #     ]
+    # # )
+    # # def p2_sigma_after(self):
+    # #     if self.p2_sigma_before is None or self.result is None:
+    # #         return None
         
-        def format_delta(x):
+    # #     return self.predictions['sigma'][1]
+    
+    # @computed(
+    #     models.JSONField(null=True, blank=True),
+    #     depends=[
+    #         ('self', ['p1_mu_before', 'p1_sigma_before', 'p2_mu_before', 'p2_sigma_before'])
+    #     ]
+    # )
+    # def predictions(self):
+        
+    #     def format_delta(x):
             
-            x = round(x, 1)
+    #         x = round(x, 1)
             
-            if x > 0:
-                return f"+{x}"
-            elif x == 0:
-                return f"±{x}"
-            else:
-                return f"{x}"
+    #         if x > 0:
+    #             return f"+{x}"
+    #         elif x == 0:
+    #             return f"±{x}"
+    #         else:
+    #             return f"{x}"
         
-        if self.p1_mu_before is None or self.p2_mu_before is None:
-            return None
+    #     if self.p1_mu_before is None or self.p2_mu_before is None:
+    #         return None
         
-        result_choices = [choice[0] for choice in self._meta.get_field('result').choices]
+    #     result_choices = [choice[0] for choice in self._meta.get_field('result').choices]
         
-        elo_predictions = {}
+    #     elo_predictions = {}
         
-        for choice in result_choices:
-            (p1_mu, p1_sigma), (p2_mu, p2_sigma) = calculate_elo((self.p1_mu_before, self.p1_sigma_before), (self.p2_mu_before, self.p2_sigma_before), choice)
+    #     for choice in result_choices:
+    #         (p1_mu, p1_sigma), (p2_mu, p2_sigma) = calculate_elo((self.p1_mu_before, self.p1_sigma_before), (self.p2_mu_before, self.p2_sigma_before), choice)
             
-            p1_delta = format_delta(p1_mu - self.p1_mu_before)
-            p2_delta = format_delta(p2_mu - self.p2_mu_before)
+    #         p1_delta = format_delta(p1_mu - self.p1_mu_before)
+    #         p2_delta = format_delta(p2_mu - self.p2_mu_before)
             
-            elo_predictions[choice] = ( (p1_mu, p1_delta) , (p2_mu, p2_delta) )
+    #         elo_predictions[choice] = ( (p1_mu, p1_delta) , (p2_mu, p2_delta) )
             
-        return {
-            "p1_win_prob": calculate_p1_win_prob((self.p1_mu_before, self.p1_sigma_before), (self.p2_mu_before, self.p2_sigma_before)),
-            "sigma": [p1_sigma, p2_sigma],
-            "elo": elo_predictions,
-        }
+    #     return {
+    #         "p1_win_prob": calculate_p1_win_prob((self.p1_mu_before, self.p1_sigma_before), (self.p2_mu_before, self.p2_sigma_before)),
+    #         "sigma": [p1_sigma, p2_sigma],
+    #         "elo": elo_predictions,
+    #     }
         
-    @computed(
-        models.BooleanField(null=False, blank=True),
-        depends=[
-            ('self', ['status'])
-        ]
-    )
+    # @computed(
+    #     models.BooleanField(null=False, blank=True),
+    #     depends=[
+    #         ('self', ['status'])
+    #     ]
+    # )
     def active(self):
         return self.status not in ["Finished", "Cancelled", "Result contested"]
     
@@ -255,40 +315,40 @@ class Match(ComputedFieldsModel):
         ("Waiting for agrees", "Waiting for agrees")
     ])
     
-    forfeited_player = models.CharField(max_length=1, null=True, blank=True, choices=[
-        ("1", "1"),
-        ("2", "2"),
-    ])
+    # forfeited_player = models.CharField(max_length=1, null=True, blank=True, choices=[
+    #     ("1", "1"),
+    #     ("2", "2"),
+    # ])
         
-    @computed(
-        models.CharField(max_length=1, null=True, blank=True, choices=[
-            ("1", "1"),
-            ("2", "2"),
-            ("D", "D"),
-        ]),
-        depends=[
-            ('self', ['p1_score', 'p2_score', 'forfeited_player'])
-        ]
-    )
-    def result(self):
-        p1_score = self.p1_score
-        p2_score = self.p2_score
+    # @computed(
+    #     models.CharField(max_length=1, null=True, blank=True, choices=[
+    #         ("1", "1"),
+    #         ("2", "2"),
+    #         ("D", "D"),
+    #     ]),
+    #     depends=[
+    #         ('self', ['p1_score', 'p2_score', 'forfeited_player'])
+    #     ]
+    # )
+    # def result(self):
+    #     p1_score = self.p1_score
+    #     p2_score = self.p2_score
             
-        if self.forfeited_player is not None:
-            if self.forfeited_player == "1":
-                return "2"  # Player 2 wins
-            elif self.forfeited_player == "2":
-                return "1"  # Player 1 wins
+    #     if self.forfeited_player is not None:
+    #         if self.forfeited_player == "1":
+    #             return "2"  # Player 2 wins
+    #         elif self.forfeited_player == "2":
+    #             return "1"  # Player 1 wins
             
-        if p1_score is None or p2_score is None:
-            return None
+    #     if p1_score is None or p2_score is None:
+    #         return None
 
-        if p1_score < p2_score:
-            return "1"  # Player 1 wins
-        elif p1_score > p2_score:
-            return "2"  # Player 2 wins
-        else:
-            return "D"
+    #     if p1_score < p2_score:
+    #         return "1"  # Player 1 wins
+    #     elif p1_score > p2_score:
+    #         return "2"  # Player 2 wins
+    #     else:
+    #         return "D"
     
     contest_reason = models.CharField(max_length=64, null=True, blank=True)
     
@@ -300,24 +360,28 @@ class Match(ComputedFieldsModel):
 
         if not self.pk: # if this is a newly created match
             
-            self.game.save()
-            self.p1.save()
-            self.p2.save()
+            pass
             
-            p1_elo = Elo.objects.filter(player=self.p1, game=self.game).first()
-            p2_elo = Elo.objects.filter(player=self.p2, game=self.game).first()
+            # TODO: recreate this part
             
-            if not p1_elo:
-                p1_elo = Elo.objects.create(player=self.p1, game=self.game)
+            # self.game.save()
+            # self.p1.save()
+            # self.p2.save()
             
-            if not p2_elo:
-                p2_elo = Elo.objects.create(player=self.p2, game=self.game)
+            # p1_elo = Elo.objects.filter(player=self.p1, game=self.game).first()
+            # p2_elo = Elo.objects.filter(player=self.p2, game=self.game).first()
+            
+            # if not p1_elo:
+            #     p1_elo = Elo.objects.create(player=self.p1, game=self.game)
+            
+            # if not p2_elo:
+            #     p2_elo = Elo.objects.create(player=self.p2, game=self.game)
               
-            self.p1_mu_before, self.p1_sigma_before = p1_elo.mu, p1_elo.sigma
-            self.p2_mu_before, self.p2_sigma_before = p2_elo.mu, p2_elo.sigma
+            # self.p1_mu_before, self.p1_sigma_before = p1_elo.mu, p1_elo.sigma
+            # self.p2_mu_before, self.p2_sigma_before = p2_elo.mu, p2_elo.sigma
             
-            self.p1.save()
-            self.p2.save()
+            # self.p1.save()
+            # self.p2.save()
             
         super().save(*args, **kwargs)
     
