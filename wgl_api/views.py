@@ -314,9 +314,10 @@ class QueueAdd(generics.ListAPIView):
         
         # check if the player is in a match
         player_in_match = Match.objects.filter(
-            (Q(p1=player) | Q(p2=player)) & 
-            ~Q(status__in=["Result contested", "Finished"])
-        ).first()    
+            teams__teamplayer__player=player
+        ).exclude(
+            status__in=["Result contested", "Finished"]
+        ).first()
             
         if player_in_match:
             raise PlayerInMatch()
@@ -336,7 +337,7 @@ class QueueAdd(generics.ListAPIView):
             if other_player is not None:
                 
                 # start a match with both players
-                match = create_match(player, other_player, game)
+                match = create_match([[player],[other_player]], game)
                 self.queryset = Match.objects.filter(match_id=match.match_id)
             
         serializer = MatchSerializer(self.get_queryset(), many=True)

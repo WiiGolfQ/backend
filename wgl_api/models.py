@@ -56,8 +56,10 @@ class Game(models.Model):
     def __str__(self):
         return f"{self.game_name}" 
     
+    
 class TeamPlayer(ComputedFieldsModel):
     player = models.ForeignKey(Player, on_delete=models.CASCADE)
+    team = models.ForeignKey("Team", on_delete=models.CASCADE)
     
     score = models.IntegerField(null=True)
     score_formatted = models.CharField(max_length=12, null=True) # temp
@@ -65,10 +67,10 @@ class TeamPlayer(ComputedFieldsModel):
     video_id = models.CharField(max_length=11, null=True)
     video_timestamp = models.IntegerField(null=True)
     
-    mu_before = models.FloatField(null=False)
+    mu_before = models.FloatField(null=False, default=1)
     mu_after = models.FloatField(null=True)
     
-    sigma_before = models.FloatField(null=False)
+    sigma_before = models.FloatField(null=False, default=1)
     
     @computed(
         models.JSONField(null=True, blank=True),
@@ -84,23 +86,25 @@ class TeamPlayer(ComputedFieldsModel):
         }
     
     
+    
+    
 class Team(ComputedFieldsModel):
     match = models.ForeignKey("Match", on_delete=models.CASCADE)
     team_num = models.SmallIntegerField(null=False, default=1)
     
-    players = models.ManyToManyField(TeamPlayer)
+    players = models.ManyToManyField(TeamPlayer, related_name='teams')
     player_ids = models.JSONField(null=False, default=list) # temp
     
     place = models.SmallIntegerField(null=True) # temp
     score = models.IntegerField(null=True)
     score_formatted = models.CharField(max_length=12, null=True) # temp
     
-    forfieted = models.BooleanField(null=False, default=False)
+    forfeited = models.BooleanField(null=False, default=False)
     
     @computed(
         models.JSONField(null=True, blank=True),
         depends=[
-            ('self', ['players']) # TODO: change dependencies
+            ('teamplayer_set', ['id', 'player'])  # changes when teams change
         ]
     )
     def predictions(self):
@@ -111,17 +115,7 @@ class Team(ComputedFieldsModel):
         }
     
     
-    
-    
-    
-    
 class Match(ComputedFieldsModel):
-    
-    class Meta:
-        constraints = [
-            # checks that player 1 and 2 are different
-            models.CheckConstraint(check=~Q(p1=F('p2')), name='different_players'),
-        ]
     
     match_id = models.AutoField(primary_key=True)
     discord_thread_id = models.BigIntegerField(null=True, blank=True)
@@ -133,7 +127,52 @@ class Match(ComputedFieldsModel):
     
     num_teams = models.SmallIntegerField(null=False, default=2)
     players_per_team = models.SmallIntegerField(null=False, default=1)
-    teams = models.ManyToManyField(Team)
+    teams = models.ManyToManyField(Team, related_name="match_teams")
+    
+    @computed(
+        models.BooleanField(null=False, blank=True),
+        depends=[
+            ('self', ['status'])
+        ]
+    )
+    def active(self):
+        return self.status not in ["Finished", "Cancelled", "Result contested"]
+    
+    status = models.CharField(max_length=23, null=False, default="Waiting for livestreams", choices=[
+        ("Cancelled", "Cancelled"),
+        ("Result contested", "Result contested"),
+        ("Finished", "Finished"),
+        ("Ongoing", "Ongoing"),
+        ("Waiting for livestreams", "Waiting for livestreams"),
+        ("Waiting for agrees", "Waiting for agrees")
+    ])
+    
+    def save(self, *args, **kwargs): # we need this part to set default values for starting elos
+
+        if not self.pk: # if this is a newly created match
+            
+            pass # TODO: recreate this part
+            
+            # self.game.save()
+            # self.p1.save()
+            # self.p2.save()
+            
+            # p1_elo = Elo.objects.filter(player=self.p1, game=self.game).first()
+            # p2_elo = Elo.objects.filter(player=self.p2, game=self.game).first()
+            
+            # if not p1_elo:
+            #     p1_elo = Elo.objects.create(player=self.p1, game=self.game)
+            
+            # if not p2_elo:
+            #     p2_elo = Elo.objects.create(player=self.p2, game=self.game)
+              
+            # self.p1_mu_before, self.p1_sigma_before = p1_elo.mu, p1_elo.sigma
+            # self.p2_mu_before, self.p2_sigma_before = p2_elo.mu, p2_elo.sigma
+            
+            # self.p1.save()
+            # self.p2.save()
+            
+        super().save(*args, **kwargs)
     
     # p1 = models.ForeignKey(Player, on_delete=models.CASCADE, related_name="p1")
     
@@ -296,24 +335,6 @@ class Match(ComputedFieldsModel):
     #         "sigma": [p1_sigma, p2_sigma],
     #         "elo": elo_predictions,
     #     }
-        
-    # @computed(
-    #     models.BooleanField(null=False, blank=True),
-    #     depends=[
-    #         ('self', ['status'])
-    #     ]
-    # )
-    def active(self):
-        return self.status not in ["Finished", "Cancelled", "Result contested"]
-    
-    status = models.CharField(max_length=23, null=False, default="Waiting for livestreams", choices=[
-        ("Cancelled", "Cancelled"),
-        ("Result contested", "Result contested"),
-        ("Finished", "Finished"),
-        ("Ongoing", "Ongoing"),
-        ("Waiting for livestreams", "Waiting for livestreams"),
-        ("Waiting for agrees", "Waiting for agrees")
-    ])
     
     # forfeited_player = models.CharField(max_length=1, null=True, blank=True, choices=[
     #     ("1", "1"),
@@ -349,41 +370,9 @@ class Match(ComputedFieldsModel):
     #         return "2"  # Player 2 wins
     #     else:
     #         return "D"
-    
-    contest_reason = models.CharField(max_length=64, null=True, blank=True)
-    
+        
     def __str__(self):
-        return f"{self.match_id}: {self.p1} vs {self.p2} - {self.game.game_name}"
-
-
-    def save(self, *args, **kwargs): # we need this part to set default values for starting elos
-
-        if not self.pk: # if this is a newly created match
-            
-            pass
-            
-            # TODO: recreate this part
-            
-            # self.game.save()
-            # self.p1.save()
-            # self.p2.save()
-            
-            # p1_elo = Elo.objects.filter(player=self.p1, game=self.game).first()
-            # p2_elo = Elo.objects.filter(player=self.p2, game=self.game).first()
-            
-            # if not p1_elo:
-            #     p1_elo = Elo.objects.create(player=self.p1, game=self.game)
-            
-            # if not p2_elo:
-            #     p2_elo = Elo.objects.create(player=self.p2, game=self.game)
-              
-            # self.p1_mu_before, self.p1_sigma_before = p1_elo.mu, p1_elo.sigma
-            # self.p2_mu_before, self.p2_sigma_before = p2_elo.mu, p2_elo.sigma
-            
-            # self.p1.save()
-            # self.p2.save()
-            
-        super().save(*args, **kwargs)
+        return f"{self.match_id}: {self.game.game_name}"
     
 class Score(ComputedFieldsModel):
     

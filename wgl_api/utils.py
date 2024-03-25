@@ -1,8 +1,8 @@
 from openskill.models import BradleyTerryFull
 
-def create_match(p1, p2, game):
+def create_match(teams, game):
     
-    from .models import Match
+    from .models import Match, Team, TeamPlayer
     
     # this is probably not necessary because you can't queue for a match if you're already playing one
     
@@ -11,32 +11,25 @@ def create_match(p1, p2, game):
     # if p2.currently_playing_match:
     #     raise Exception(f"{p2} is already playing a match")
     
-    p1.queueing_for = None
-    p1.save()   
     
-    p2.queueing_for = None
-    p2.save()
-    
-    game.save()
-    
-    # start a match with both players
-    return Match.objects.create(
+    # start a match
+    match = Match.objects.create(
         game=game,
-        p1=p1,
-        p2=p2,
     )
     
+    # add teams to match
+    for team in teams:
+        t = Team.objects.create(match=match)
+        for player in team:
+            # add players to teams
+            team_player = TeamPlayer.objects.create(team=t, player=player)
+            t.players.add(team_player)
+        match.teams.add(t)
+        
+    return match
+    
 
 
-"""
-TODO: support multiplayer
-
-example:
-
-teams = [ [player1, player2] , [player3, player4] ]
-this match was a 2v2. p1/p2 got 1st, p3/p4 got 2nd
-
-"""
 
 STARTING_ELO = 1500
 

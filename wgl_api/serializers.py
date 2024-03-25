@@ -7,6 +7,8 @@ from .models import (
     Score,
     Challenge,
     Elo,
+    Team,
+    TeamPlayer,
 )
 
 class FullPlayerSerializer(serializers.ModelSerializer):
@@ -47,43 +49,53 @@ class GameSerializer(serializers.ModelSerializer):
         model = Game
         fields = ["game_id", "shortcode", "game_name", "speedrun"]
         
-class MatchSerializer(serializers.ModelSerializer):
-    game = GameSerializer(read_only=True)
-    p1 = PlayerSerializer(read_only=True)
-    p2 = PlayerSerializer(read_only=True)
+class TeamPlayerSerializer(serializers.ModelSerializer):
+    player = PlayerSerializer(read_only=True)
     class Meta:
-        model = Match
+        model = TeamPlayer
         fields = [
-            "match_id", 
-            "discord_thread_id",
-            "game", 
-            "timestamp_started", 
-            "timestamp_finished", 
-            "status", 
-            "contest_reason", 
-            "p1", 
-            "p2", 
-            "result", 
-            "forfeited_player",
-            "p1_score",
-            "p1_score_formatted", 
-            "p2_score", 
-            "p2_score_formatted",
-            "p1_video_url", 
-            "p2_video_url",
-            "p1_mu_before",
-            "p1_mu_after",
-            "p2_mu_before",
-            "p2_mu_after",
+            "player",
+            "score",
+            "score_formatted",
+            "video_id",
+            "video_timestamp",
+            "mu_before",
+            "mu_after",
             "predictions",
         ]
         
-        def get_predictions(self, obj):
-            predictions = obj.predictions
-            if predictions is not None:
-                # Exclude the "sigma" key from the predictions
-                predictions.pop('sigma', None)
-            return predictions
+class TeamSerializer(serializers.ModelSerializer):
+    players = TeamPlayerSerializer(many=True, read_only=False)
+    class Meta:
+        model = Team
+        fields = [
+            "place",
+            "team_num",
+            "player_ids",
+            "players",
+            "score",
+            "score_formatted",
+            "predictions",
+        ]
+        
+class MatchSerializer(serializers.ModelSerializer):
+    game = GameSerializer(read_only=True)
+    teams = TeamSerializer(many=True, read_only=False)
+
+    class Meta:
+        model = Match
+        fields = [
+            "match_id",
+            "discord_thread_id",
+            "game",
+            "timestamp_started",
+            "timestamp_finished",
+            "num_teams",
+            "players_per_team",
+            "teams",
+            "active",
+            "status",
+        ]
         
 class ChallengeSerializer(serializers.ModelSerializer):
     game = GameSerializer(read_only=True)
