@@ -1,4 +1,6 @@
 from rest_framework import serializers
+from drf_writable_nested.serializers import WritableNestedModelSerializer
+from drf_writable_nested.mixins import NestedUpdateMixin, UniqueFieldsMixin
 
 from .models import (
     Player,
@@ -11,7 +13,7 @@ from .models import (
     TeamPlayer,
 )
 
-class FullPlayerSerializer(serializers.ModelSerializer):
+class FullPlayerSerializer(UniqueFieldsMixin, serializers.ModelSerializer):
     
     currently_playing_match = serializers.SerializerMethodField()
     
@@ -35,7 +37,7 @@ class FullPlayerSerializer(serializers.ModelSerializer):
             return match.match_id
         return None
 
-class PlayerSerializer(serializers.ModelSerializer):
+class PlayerSerializer(UniqueFieldsMixin, serializers.ModelSerializer):
     class Meta:
         model = Player
         fields = [
@@ -44,11 +46,13 @@ class PlayerSerializer(serializers.ModelSerializer):
             "yt_username",
         ]
         
-class GameSerializer(serializers.ModelSerializer):
+class GameSerializer(UniqueFieldsMixin, serializers.ModelSerializer):
+    shortcode = serializers.CharField(required=False)
+    game_name = serializers.CharField(required=False)
     class Meta:
         model = Game
         fields = ["game_id", "shortcode", "game_name", "speedrun"]
-        
+
 class TeamPlayerSerializer(serializers.ModelSerializer):
     player = PlayerSerializer(read_only=True)
     class Meta:
@@ -64,7 +68,7 @@ class TeamPlayerSerializer(serializers.ModelSerializer):
             "predictions",
         ]
         
-class TeamSerializer(serializers.ModelSerializer):
+class TeamSerializer(WritableNestedModelSerializer, serializers.ModelSerializer):
     players = TeamPlayerSerializer(many=True, read_only=False)
     class Meta:
         model = Team
@@ -78,9 +82,9 @@ class TeamSerializer(serializers.ModelSerializer):
             "predictions",
         ]
         
-class MatchSerializer(serializers.ModelSerializer):
-    game = GameSerializer(read_only=True)
-    teams = TeamSerializer(many=True, read_only=False)
+class MatchSerializer(NestedUpdateMixin, serializers.ModelSerializer):
+    game = GameSerializer(read_only=False, required=False)
+    teams = TeamSerializer(many=True, read_only=False, required=False)
 
     class Meta:
         model = Match
@@ -97,6 +101,10 @@ class MatchSerializer(serializers.ModelSerializer):
             "status",
         ]
         
+    
+    
+    
+
 class ChallengeSerializer(serializers.ModelSerializer):
     game = GameSerializer(read_only=True)
     class Meta:

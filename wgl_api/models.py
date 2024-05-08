@@ -33,10 +33,11 @@ class Player(ComputedFieldsModel):
     queueing_for = models.ForeignKey("Game", related_name="players_in_queue", on_delete=models.CASCADE, null=True, blank=True)
     
     def currently_playing_match(self):
-        return (
+        return None 
+        """(
             Match.objects.filter(active=True, p1=self).first() 
             or Match.objects.filter(active=True, p2=self).first()
-        )
+        )"""
     
     accept_challenges = models.BooleanField(null=False, default=True)
     
@@ -89,7 +90,6 @@ class TeamPlayer(ComputedFieldsModel):
     
     
 class Team(ComputedFieldsModel):
-    match = models.ForeignKey("Match", on_delete=models.CASCADE)
     team_num = models.SmallIntegerField(null=False, default=1)
     
     players = models.ManyToManyField(TeamPlayer, related_name='teams')

@@ -149,38 +149,42 @@ class MatchDetail(generics.RetrieveUpdateDestroyAPIView):
         match_id = self.kwargs.get('match_id')
         return get_object_or_404(Match, match_id=match_id)
     
-    # we need to override the update method to check for a change in status
     def update(self, request, *args, **kwargs):
         
         match = self.get_object()
         
-        # we need this to check if we need to do the retroactive result change procedure 
-        old_status = match.status
+        data = request.data
         
-        for field, value in request.data.items():
-            if hasattr(match, field):
-                if value == "":
-                    value = None
-                setattr(match, field, value)
-
-        match.save()
+        
+        # # update the game if it was changed
+        # game_data = data.pop("game", None)
+        
+        # if game_data is not None:
+        #     match.game = get_object_or_404(Game, game_id=game_data.get("game_id"))
+            
+            
+        # # 
+            
+        
+        old_status = match.status
         
         # check if the status was updated to "Finished"
         if match.status == "Finished":
-            
             # update finish timestamp
             match.timestamp_finished = datetime.now()
         
-            # if the old match status was result contested
-            if old_status == "Result contested":
-                                
+            if old_status == "Result contested":      
                 # retroactive result change procedure, just pass for now
                 pass
-            
             else:
-                
                 # assign player elos based on the match result
                 assign_elo(match)
+        
+        serializer = self.get_serializer(match, data=data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+
+        match.save()
             
         # # check if result was updated by the request
         # result = request.data.get("result")

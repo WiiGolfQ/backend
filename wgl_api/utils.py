@@ -19,7 +19,7 @@ def create_match(teams, game):
     
     # add teams to match
     for team in teams:
-        t = Team.objects.create(match=match)
+        t = Team.objects.create()
         for player in team:
             # add players to teams
             team_player = TeamPlayer.objects.create(team=t, player=player)
