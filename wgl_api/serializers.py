@@ -11,11 +11,19 @@ from .models import (
     Elo,
     Team,
     TeamPlayer,
+    Youtube,
 )
+
+class YoutubeSerializer(UniqueFieldsMixin, serializers.Serializer):
+    class Meta:
+        model = Youtube
+        fields = ["handle", "video_id"]
 
 class FullPlayerSerializer(UniqueFieldsMixin, serializers.ModelSerializer):
     
     currently_playing_match = serializers.SerializerMethodField()
+    
+    youtube = YoutubeSerializer(read_only=False, required=False)
     
     class Meta:
         model = Player
@@ -24,7 +32,7 @@ class FullPlayerSerializer(UniqueFieldsMixin, serializers.ModelSerializer):
             "username",
             "created_timestamp",
             "last_active_timestamp",
-            "yt_username",
+            "youtube",
             "queueing_for",
             "currently_playing_match",
             "accept_challenges",
@@ -36,14 +44,17 @@ class FullPlayerSerializer(UniqueFieldsMixin, serializers.ModelSerializer):
         if match:
             return match.match_id
         return None
-
-class PlayerSerializer(UniqueFieldsMixin, serializers.ModelSerializer):
+    
+class PlayerSerializer(WritableNestedModelSerializer, serializers.ModelSerializer):
+    
+    youtube = YoutubeSerializer(read_only=False, required=False)
+    
     class Meta:
         model = Player
         fields = [
             "discord_id",
             "username",
-            "yt_username",
+            "youtube",
         ]
         
 class GameSerializer(UniqueFieldsMixin, serializers.ModelSerializer):

@@ -11,19 +11,21 @@ from .utils import calculate_elo, calculate_p1_win_prob, ms_to_time
 
 # Create your models here.
 
-class Player(ComputedFieldsModel):
-        
-    discord_id = models.BigIntegerField(primary_key=True, null=False, unique=True)
-    
-    username = models.CharField(max_length=64, null=False, unique=True)
-    
-    yt_username = models.CharField(max_length=30, null=False, unique=True, validators=[
+class Youtube(models.Model):
+    handle = models.CharField(max_length=30, null=False, unique=True, validators=[
         RegexValidator(
             regex=r'^[\w.-]+$',
             message='Username can only contain alphanumeric characters, underscores, hyphens, and periods.',
             code='invalid_username'
         ),
     ])
+    video_id = models.CharField(max_length=11, null=False, unique=True)
+
+class Player(ComputedFieldsModel):
+        
+    discord_id = models.BigIntegerField(primary_key=True, null=False, unique=True)
+    username = models.CharField(max_length=64, null=False, unique=True)
+    youtube = models.OneToOneField(Youtube, on_delete=models.CASCADE, null=True, blank=True)
         
     created_timestamp = models.DateTimeField(auto_now_add=True)
     last_active_timestamp = models.DateTimeField(auto_now_add=True)

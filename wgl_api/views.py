@@ -21,6 +21,7 @@ from .models import (
     Challenge,
     Elo,
     Score,
+    Youtube,
 )
 
 from .serializers import (
@@ -64,10 +65,9 @@ class PlayerList(generics.ListCreateAPIView):
     def create(self, request, *args, **kwargs):
         discord_id = request.data.get('discord_id')
         username = request.data.get('username')
-        yt_username = request.data.get('yt_username')
-        # Add other fields if necessary
+        youtube = request.data.get('youtube')
 
-        if discord_id is None or username is None or yt_username is None:
+        if discord_id is None or username is None or youtube is None:
             return Response({"error": "Missing required fields"}, status=status.HTTP_400_BAD_REQUEST)
 
         player, created = Player.objects.get_or_create(discord_id=discord_id)
@@ -75,12 +75,18 @@ class PlayerList(generics.ListCreateAPIView):
         if Player.objects.filter(username=username).exclude(discord_id=discord_id).exists():
             return Response({"error": "Username already exists."}, status=status.HTTP_400_BAD_REQUEST)
 
-        if Player.objects.filter(yt_username=yt_username).exclude(discord_id=discord_id).exists():
+        if Youtube.objects.filter(handle=youtube.get('handle')).exists():
             return Response({"error": "YouTube username already exists."}, status=status.HTTP_400_BAD_REQUEST)
 
         player.username = username
-        player.yt_username = yt_username
-        # Update other fields if necessary
+        
+        if created:
+            player.created_timestamp = datetime.now()
+            youtube = Youtube.objects.create(handle = youtube.get('handle'), video_id = youtube.get('video_id'))
+            player.youtube = youtube
+        else:
+            player.youtube.handle = youtube.get('handle')
+        
         player.save()
         
         serializer = self.get_serializer(player)
