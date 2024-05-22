@@ -14,17 +14,20 @@ from .models import (
     Youtube,
 )
 
-class YoutubeSerializer(UniqueFieldsMixin, serializers.Serializer):
+
+class YoutubeSerializer(
+    UniqueFieldsMixin, WritableNestedModelSerializer, serializers.Serializer
+):
     class Meta:
         model = Youtube
         fields = ["handle", "video_id"]
 
-class FullPlayerSerializer(UniqueFieldsMixin, serializers.ModelSerializer):
-    
+
+class FullPlayerSerializer(WritableNestedModelSerializer, serializers.ModelSerializer):
     currently_playing_match = serializers.SerializerMethodField()
-    
+
     youtube = YoutubeSerializer(read_only=False, required=False)
-    
+
     class Meta:
         model = Player
         fields = [
@@ -38,17 +41,17 @@ class FullPlayerSerializer(UniqueFieldsMixin, serializers.ModelSerializer):
             "accept_challenges",
             "banned",
         ]
-        
+
     def get_currently_playing_match(self, obj):
         match = obj.currently_playing_match()
         if match:
             return match.match_id
         return None
-    
+
+
 class PlayerSerializer(WritableNestedModelSerializer, serializers.ModelSerializer):
-    
     youtube = YoutubeSerializer(read_only=False, required=False)
-    
+
     class Meta:
         model = Player
         fields = [
@@ -56,16 +59,20 @@ class PlayerSerializer(WritableNestedModelSerializer, serializers.ModelSerialize
             "username",
             "youtube",
         ]
-        
+
+
 class GameSerializer(UniqueFieldsMixin, serializers.ModelSerializer):
     shortcode = serializers.CharField(required=False)
     game_name = serializers.CharField(required=False)
+
     class Meta:
         model = Game
         fields = ["game_id", "shortcode", "game_name", "speedrun"]
 
+
 class TeamPlayerSerializer(serializers.ModelSerializer):
     player = PlayerSerializer(read_only=True)
+
     class Meta:
         model = TeamPlayer
         fields = [
@@ -78,9 +85,11 @@ class TeamPlayerSerializer(serializers.ModelSerializer):
             "mu_after",
             "predictions",
         ]
-        
+
+
 class TeamSerializer(WritableNestedModelSerializer, serializers.ModelSerializer):
     players = TeamPlayerSerializer(many=True, read_only=False)
+
     class Meta:
         model = Team
         fields = [
@@ -92,7 +101,8 @@ class TeamSerializer(WritableNestedModelSerializer, serializers.ModelSerializer)
             "score_formatted",
             "predictions",
         ]
-        
+
+
 class MatchSerializer(NestedUpdateMixin, serializers.ModelSerializer):
     game = GameSerializer(read_only=False, required=False)
     teams = TeamSerializer(many=True, read_only=False, required=False)
@@ -111,35 +121,43 @@ class MatchSerializer(NestedUpdateMixin, serializers.ModelSerializer):
             "active",
             "status",
         ]
-        
-    
-    
-    
+
 
 class ChallengeSerializer(serializers.ModelSerializer):
     game = GameSerializer(read_only=True)
+
     class Meta:
         model = Challenge
-        fields = ['challenge_id', 'timestamp', 'game', 'challenger', 'challenged']
-        
+        fields = ["challenge_id", "timestamp", "game", "challenger", "challenged"]
+
+
 class EloSerializer(serializers.ModelSerializer):
     player = PlayerSerializer(read_only=True)
-    rank = serializers.SerializerMethodField()    
-    
+    rank = serializers.SerializerMethodField()
+
     class Meta:
         model = Elo
         fields = ["rank", "player", "mu"]
-        
+
     def get_rank(self, obj):
         return obj.rank
-        
+
+
 class ScoreSerializer(serializers.ModelSerializer):
     player = PlayerSerializer(read_only=True)
-    
+
     player_rank = serializers.IntegerField()
     overall_rank = serializers.IntegerField()
     non_obsolete_rank = serializers.IntegerField()
-    
+
     class Meta:
         model = Score
-        fields = ["player", "score", "score_formatted", "match", 'overall_rank', 'player_rank', 'non_obsolete_rank']
+        fields = [
+            "player",
+            "score",
+            "score_formatted",
+            "match",
+            "overall_rank",
+            "player_rank",
+            "non_obsolete_rank",
+        ]

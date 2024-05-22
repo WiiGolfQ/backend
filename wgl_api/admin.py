@@ -3,6 +3,7 @@ import wgl_api.models as models
 
 # Register all models in models
 
+admin.site.register(models.Youtube)
 admin.site.register(models.Player)
 admin.site.register(models.Match)
 admin.site.register(models.Game)
