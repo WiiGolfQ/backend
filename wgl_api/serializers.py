@@ -76,6 +76,7 @@ class TeamPlayerSerializer(serializers.ModelSerializer):
     class Meta:
         model = TeamPlayer
         fields = [
+            "pk",
             "player",
             "score",
             "score_formatted",
@@ -95,7 +96,6 @@ class TeamSerializer(WritableNestedModelSerializer, serializers.ModelSerializer)
         fields = [
             "place",
             "team_num",
-            "player_ids",
             "players",
             "score",
             "score_formatted",

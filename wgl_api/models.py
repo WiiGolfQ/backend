@@ -108,7 +108,6 @@ class Team(ComputedFieldsModel):
     team_num = models.SmallIntegerField(null=False, default=1)
 
     players = models.ManyToManyField(TeamPlayer, related_name="teams")
-    player_ids = models.JSONField(null=False, default=list)  # temp
 
     place = models.SmallIntegerField(null=True)  # temp
     score = models.IntegerField(null=True)
