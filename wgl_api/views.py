@@ -10,7 +10,6 @@ from django.db.models import (
     Value,
     IntegerField,
     Subquery,
-    OuterRef,
 )
 from django.db.models.functions import Rank
 
@@ -29,6 +28,8 @@ from .models import (
     Challenge,
     Elo,
     Score,
+    Team,
+    TeamPlayer,
     Youtube,
 )
 
@@ -39,6 +40,7 @@ from .serializers import (
     ChallengeSerializer,
     EloSerializer,
     ScoreSerializer,
+    TeamPlayerSerializer,
 )
 
 from .paginations import RankingPagination
@@ -47,7 +49,7 @@ from .paginations import RankingPagination
 class ChangedQueueingFor(APIException):
     status_code = 400
     default_detail = (
-        "Please use the /api/queue route instead of editing queueing_for directly"
+        "Please use the /queue route instead of editing queueing_for directly"
     )
     default_code = "bad_request"
 
@@ -259,6 +261,7 @@ class MatchDetail(generics.RetrieveUpdateDestroyAPIView):
         return super(MatchDetail, self).update(request, *args, **kwargs)
 
 
+# OBSOLETE
 class ReportScore(generics.RetrieveAPIView):
     serializer_class = MatchSerializer
 

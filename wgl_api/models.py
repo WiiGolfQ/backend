@@ -74,6 +74,7 @@ class Game(models.Model):
 
 class TeamPlayer(ComputedFieldsModel):
     player = models.ForeignKey(Player, on_delete=models.CASCADE)
+    match = models.ForeignKey("Match", on_delete=models.CASCADE)
     team = models.ForeignKey("Team", on_delete=models.CASCADE)
 
     score = models.IntegerField(null=True)
@@ -105,13 +106,54 @@ class TeamPlayer(ComputedFieldsModel):
 
 
 class Team(ComputedFieldsModel):
+    match = models.ForeignKey("Match", on_delete=models.CASCADE)
+
     team_num = models.SmallIntegerField(null=False, default=1)
 
     players = models.ManyToManyField(TeamPlayer, related_name="teams")
 
     place = models.SmallIntegerField(null=True)  # temp
-    score = models.IntegerField(null=True)
-    score_formatted = models.CharField(max_length=12, null=True)  # temp
+
+    @computed(
+        models.IntegerField(null=True),
+        depends=[
+            ("teamplayer_set", ["score"])
+        ],  # depends on everyone on the team's scores
+    )
+    def score(self):
+        # you can't access the many-to-many relationship below if the team has no pk yet (ie. newly created)
+        if not self.pk:
+            return None
+
+        try:
+            return sum([tp.score for tp in self.players.all()])
+        except TypeError:  # if a player's score is None, this triggers
+            return None
+
+    @computed(
+        models.CharField(max_length=12, null=True),
+        depends=[
+            ("self", ["score"]),
+            ("match", ["game"]),
+        ],
+    )
+    def score_formatted(self):
+        score = self.score
+
+        if score is None:
+            return None
+
+        speedrun = self.match.game.speedrun
+
+        if speedrun:  # if the game is a speedrun category
+            return ms_to_time(score)
+        else:  # it is a score category
+            if score > 0:
+                return f"+{score}"
+            elif score == 0:
+                return "±0"
+            else:
+                return f"{score}"  # e.g. -18
 
     forfeited = models.BooleanField(null=False, default=False)
 
