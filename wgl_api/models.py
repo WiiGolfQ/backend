@@ -5,7 +5,7 @@ from django_cte import CTEManager
 
 from computedfields.models import ComputedFieldsModel, computed
 
-from .utils import ms_to_time
+from .utils import format_score, ms_to_time
 
 # Create your models here.
 
@@ -78,13 +78,19 @@ class TeamPlayer(ComputedFieldsModel):
     team = models.ForeignKey("Team", on_delete=models.CASCADE)
 
     score = models.IntegerField(null=True)
-    score_formatted = models.CharField(max_length=12, null=True)  # temp
+
+    @computed(
+        models.CharField(max_length=12, null=True),
+        depends=[("self", ["score"])],  # changes when the player's score changes
+    )
+    def score_formatted(self):
+        return format_score(self.score, self.match.game)
 
     video_id = models.CharField(max_length=11, null=True)
     video_timestamp = models.IntegerField(null=True)
 
     mu_before = models.FloatField(null=False, default=1)
-    mu_after = models.FloatField(null=True)
+    mu_after = models.FloatField(null=True, blank=True)
 
     sigma_before = models.FloatField(null=False, default=1)
 
@@ -138,22 +144,7 @@ class Team(ComputedFieldsModel):
         ],
     )
     def score_formatted(self):
-        score = self.score
-
-        if score is None:
-            return None
-
-        speedrun = self.match.game.speedrun
-
-        if speedrun:  # if the game is a speedrun category
-            return ms_to_time(score)
-        else:  # it is a score category
-            if score > 0:
-                return f"+{score}"
-            elif score == 0:
-                return "±0"
-            else:
-                return f"{score}"  # e.g. -18
+        return format_score(self.score, self.match.game)
 
     forfeited = models.BooleanField(null=False, default=False)
 

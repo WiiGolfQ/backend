@@ -115,3 +115,18 @@ def ms_to_time(ms):
         return f"{minutes}:{seconds:06.3f}"
     else:
         return f"{seconds:.3f}"
+
+
+def format_score(score, game):
+    if score is None:
+        return None
+
+    if game.speedrun:  # if the game is a speedrun category
+        return ms_to_time(score)
+    else:  # it is a score category
+        if score > 0:
+            return f"+{score}"
+        elif score == 0:
+            return "±0"
+        else:
+            return f"{score}"  # e.g. -18
