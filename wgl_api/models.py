@@ -3,7 +3,7 @@ from django.core.validators import RegexValidator
 
 from django_cte import CTEManager
 
-from computedfields.models import ComputedFieldsModel, computed, precomputed
+from computedfields.models import ComputedFieldsModel, computed
 
 from ranking import Ranking, COMPETITION
 

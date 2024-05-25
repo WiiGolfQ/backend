@@ -1,5 +1,6 @@
 from django.urls import path
 from .views import (
+    MatchmakeView,
     PlayerList,
     PlayerDetail,
     MatchList,
@@ -7,7 +8,6 @@ from .views import (
     ChallengeList,
     ChallengeDetail,
     QueueList,
-    QueueAdd,
     LeaderboardList,
     ScoresList,
     GameList,
@@ -21,9 +21,8 @@ urlpatterns = [
     path("challenge/", ChallengeList.as_view()),
     path("challenge/<int:challenge_id>", ChallengeDetail.as_view()),
     path("queue/<int:game_id>", QueueList.as_view()),
-    path("queue/<int:game_id>/<int:discord_id>", QueueAdd.as_view()),
     path("leaderboard/<int:game_id>", LeaderboardList.as_view()),
     path("scores/<int:game_id>", ScoresList.as_view()),
-    # path('report/<int:match_id>', ReportScore.as_view()), # OBSOLETE
     path("game/", GameList.as_view()),
+    path("matchmake/", MatchmakeView.as_view()),
 ]

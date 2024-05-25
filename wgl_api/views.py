@@ -46,13 +46,7 @@ from .serializers import (
 
 from .paginations import RankingPagination
 
-
-class ChangedQueueingFor(APIException):
-    status_code = 400
-    default_detail = (
-        "Please use the /queue route instead of editing queueing_for directly"
-    )
-    default_code = "bad_request"
+from .matchmaking import matchmake
 
 
 class PlayerInMatch(APIException):
@@ -155,31 +149,21 @@ class PlayerDetail(generics.RetrieveUpdateDestroyAPIView, mixins.CreateModelMixi
         return super(PlayerDetail, self).update(request, *args, **kwargs)
 
     def update(self, request, *args, **kwargs):
-        player = self.get_object()
+        # player = self.get_object()
 
-        queueing_for = request.data.get("queueing_for")
+        # # is another player queueing for this game?
+        # # if so, start a match with both players
 
-        if queueing_for is not None and queueing_for != "":
-            queueing_for_id = int(queueing_for)
-        else:
-            queueing_for_id = None
+        # other_player = Player.objects.filter(queueing_for=queueing_for).first()
 
-        if queueing_for_id != player.queueing_for.game_id:
-            raise ChangedQueueingFor()
+        # if other_player is not None:
 
-            # # is another player queueing for this game?
-            # # if so, start a match with both players
+        #     # start a match with both players
+        #     match = create_match(player, other_player, queueing_for_game)
 
-            # other_player = Player.objects.filter(queueing_for=queueing_for).first()
-
-            # if other_player is not None:
-
-            #     # start a match with both players
-            #     match = create_match(player, other_player, queueing_for_game)
-
-            #     # return the match
-            #     # TODO: we need a more permanent way to do this
-            #     return Response(MatchSerializer(match).data, status=status.HTTP_201_CREATED)
+        #     # return the match
+        #     # TODO: we need a more permanent way to do this
+        #     return Response(MatchSerializer(match).data, status=status.HTTP_201_CREATED)
 
         return super(PlayerDetail, self).update(request, *args, **kwargs)
 
@@ -234,6 +218,11 @@ class MatchDetail(generics.RetrieveUpdateDestroyAPIView):
         match.save()
 
         return super(MatchDetail, self).update(request, *args, **kwargs)
+
+
+class MatchmakeView(generics.ListAPIView):
+    serializer_class = MatchSerializer
+    queryset = matchmake()
 
 
 # OBSOLETE
@@ -325,58 +314,50 @@ class QueueList(generics.ListAPIView):
         return Player.objects.filter(queueing_for=game)
 
 
-class QueueAdd(generics.ListAPIView):
-    serializer_class = MatchSerializer
+# class QueueAdd(generics.ListAPIView):
+#     serializer_class = MatchSerializer
 
-    queryset = Match.objects.none()
+#     queryset = Match.objects.none()
 
-    def get_object(self):
-        game_id = self.kwargs.get("game_id")
-        discord_id = self.kwargs.get("discord_id")
+#     def get_object(self):
+#         game_id = self.kwargs.get("game_id")
+#         discord_id = self.kwargs.get("discord_id")
 
-        if game_id == 0:
-            return (None, Player.objects.filter(discord_id=discord_id).first())
+#         if game_id == 0:
+#             return (None, Player.objects.filter(discord_id=discord_id).first())
 
-        return (
-            get_object_or_404(Game, game_id=game_id),
-            Player.objects.filter(discord_id=discord_id).first(),
-        )
+#         return (
+#             get_object_or_404(Game, game_id=game_id),
+#             Player.objects.filter(discord_id=discord_id).first(),
+#         )
 
-    def get(self, request, *args, **kwargs):
-        game, player = self.get_object()
+#     def get(self, request, *args, **kwargs):
+#         game, player = self.get_object()
 
-        # check if the player is in a match
-        player_in_match = (
-            Match.objects.filter(teams__teamplayer__player=player)
-            .exclude(status__in=["Result contested", "Finished"])
-            .first()
-        )
+#         # check if the player is in a match
+#         player_in_match = (
+#             Match.objects.filter(teams__teamplayer__player=player)
+#             .exclude(status__in=["Result contested", "Finished"])
+#             .first()
+#         )
 
-        if player_in_match:
-            raise PlayerInMatch()
+#         if player_in_match:
+#             raise PlayerInMatch()
 
-        player.queueing_for = game
-        player.save()
+#         player.queueing_for = game
+#         player.save()
 
-        # is another player queueing for this game?
-        # if so, start a match with both players
-        # TODO: more complex matchmaking
+#         # is another player queueing for this game?
+#         # if so, start a match with both players
+#         # TODO: more complex matchmaking
 
-        if game is not None:
-            other_player = (
-                Player.objects.filter(queueing_for=game)
-                .exclude(discord_id=player.discord_id)
-                .first()
-            )
+#         queuing = Player.objects.filter(queueing_for__is_null=False)
+#         for teams, game in matchmake(queuing):
+#             create_match(teams, game)
 
-            if other_player is not None:
-                # start a match with both players
-                match = create_match([[player], [other_player]], game)
-                self.queryset = Match.objects.filter(match_id=match.match_id)
+#         serializer = MatchSerializer(self.get_queryset(), many=True)
 
-        serializer = MatchSerializer(self.get_queryset(), many=True)
-
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+#         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 class LeaderboardList(generics.ListAPIView):
