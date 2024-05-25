@@ -360,7 +360,7 @@ class QueueList(generics.ListAPIView):
 #         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
-class LeaderboardList(generics.ListAPIView):
+class LeaderboardDetail(generics.ListAPIView):
     serializer_class = EloSerializer
     pagination_class = RankingPagination
 
@@ -378,7 +378,7 @@ class LeaderboardList(generics.ListAPIView):
         )
 
 
-class ScoresList(generics.ListAPIView):
+class ScoresDetail(generics.ListAPIView):
     serializer_class = ScoreSerializer
     pagination_class = RankingPagination
 

@@ -3,7 +3,7 @@ from django.core.validators import RegexValidator
 
 from django_cte import CTEManager
 
-from computedfields.models import ComputedFieldsModel, computed
+from computedfields.models import ComputedFieldsModel, computed, precomputed
 
 from ranking import Ranking, COMPETITION
 
@@ -133,10 +133,13 @@ class Team(ComputedFieldsModel):
         if not self.pk:
             return None
 
-        try:
-            return sum([tp.score for tp in self.players.all()])
-        except TypeError:
-            return None
+        score = 0
+        for player in self.players.all():
+            if player.score is None:
+                return None
+            score += player.score
+
+        return score
 
     @computed(
         models.CharField(max_length=12, null=True),
@@ -163,6 +166,7 @@ class Team(ComputedFieldsModel):
             }
         }
 
+    @precomputed
     def save(self, *args, **kwargs):
         # TODO: i only need this because of the match places not working
         # try to get rid of it
