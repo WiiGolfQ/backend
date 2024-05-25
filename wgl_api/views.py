@@ -10,6 +10,7 @@ from django.db.models import (
     Value,
     IntegerField,
     Subquery,
+    Prefetch,
 )
 from django.db.models.functions import Rank
 
@@ -212,14 +213,6 @@ class MatchDetail(generics.RetrieveUpdateDestroyAPIView):
 
         data = request.data
 
-        # # update the game if it was changed
-        # game_data = data.pop("game", None)
-
-        # if game_data is not None:
-        #     match.game = get_object_or_404(Game, game_id=game_data.get("game_id"))
-
-        # #
-
         old_status = match.status
 
         # check if the status was updated to "Finished"
@@ -239,24 +232,6 @@ class MatchDetail(generics.RetrieveUpdateDestroyAPIView):
         self.perform_update(serializer)
 
         match.save()
-
-        # # check if result was updated by the request
-        # result = request.data.get("result")
-
-        # if result is not None:
-
-        #     # if the old match status was result contested
-        #     if match.status == "Result contested":
-
-        #         # retroactive result change procedure, just pass for now
-        #         pass
-
-        #     else:
-
-        #         # update the result (this will change elos automatically)
-        #         match.result = result
-        #         match.save()
-        #         assign_elo(match)
 
         return super(MatchDetail, self).update(request, *args, **kwargs)
 

@@ -125,6 +125,17 @@ class MatchSerializer(NestedUpdateMixin, serializers.ModelSerializer):
             "status",
         ]
 
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+
+        # order the teams by place and then team_num
+        representation["teams"] = sorted(
+            representation["teams"],
+            key=lambda team: ((team["place"] is None, team["place"]), team["team_num"]),
+        )
+
+        return representation
+
 
 class ChallengeSerializer(serializers.ModelSerializer):
     game = GameSerializer(read_only=True)

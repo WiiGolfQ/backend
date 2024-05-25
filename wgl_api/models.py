@@ -3,7 +3,9 @@ from django.core.validators import RegexValidator
 
 from django_cte import CTEManager
 
-from computedfields.models import ComputedFieldsModel, computed
+from computedfields.models import ComputedFieldsModel, computed, precomputed
+
+from ranking import Ranking, COMPETITION
 
 from .utils import format_score, ms_to_time
 
@@ -118,7 +120,7 @@ class Team(ComputedFieldsModel):
 
     players = models.ManyToManyField(TeamPlayer, related_name="teams")
 
-    place = models.SmallIntegerField(null=True)  # temp
+    place = models.SmallIntegerField(null=True)
 
     @computed(
         models.IntegerField(null=True),
@@ -133,7 +135,7 @@ class Team(ComputedFieldsModel):
 
         try:
             return sum([tp.score for tp in self.players.all()])
-        except TypeError:  # if a player's score is None, this triggers
+        except TypeError:
             return None
 
     @computed(
@@ -160,6 +162,14 @@ class Team(ComputedFieldsModel):
                 1: 1.0,
             }
         }
+
+    def save(self, *args, **kwargs):
+        # TODO: i only need this because of the match places not working
+        # try to get rid of it
+
+        if self.pk:
+            self.match.save()
+        super().save(*args, **kwargs)
 
 
 class Match(ComputedFieldsModel):
@@ -195,30 +205,44 @@ class Match(ComputedFieldsModel):
         ],
     )
 
-    def save(
-        self, *args, **kwargs
-    ):  # we need this part to set default values for starting elos
-        if not self.pk:  # if this is a newly created match
-            pass  # TODO: recreate this part
+    def save(self, *args, **kwargs):
+        # TODO: this is so bad
+        if self.pk:
+            teams = self.teams.all().order_by("score")
+            scores = sorted(
+                [team.score for team in teams], key=lambda x: (x is None, x)
+            )  # ascending order, push None's to end
 
-            # self.game.save()
-            # self.p1.save()
-            # self.p2.save()
+            ranking = Ranking(scores, strategy=COMPETITION, start=1, reverse=True)
+            ranks = ranking.ranks()
 
-            # p1_elo = Elo.objects.filter(player=self.p1, game=self.game).first()
-            # p2_elo = Elo.objects.filter(player=self.p2, game=self.game).first()
+            for team, rank in zip(teams, ranks):
+                Team.objects.filter(pk=team.pk).update(place=rank)
 
-            # if not p1_elo:
-            #     p1_elo = Elo.objects.create(player=self.p1, game=self.game)
+        # def save(
+        #     self, *args, **kwargs
+        # ):  # we need this part to set default values for starting elos
+        #     if not self.pk:  # if this is a newly created match
+        #         pass  # TODO: recreate this part
 
-            # if not p2_elo:
-            #     p2_elo = Elo.objects.create(player=self.p2, game=self.game)
+        #         # self.game.save()
+        # self.p1.save()
+        # self.p2.save()
 
-            # self.p1_mu_before, self.p1_sigma_before = p1_elo.mu, p1_elo.sigma
-            # self.p2_mu_before, self.p2_sigma_before = p2_elo.mu, p2_elo.sigma
+        # p1_elo = Elo.objects.filter(player=self.p1, game=self.game).first()
+        # p2_elo = Elo.objects.filter(player=self.p2, game=self.game).first()
 
-            # self.p1.save()
-            # self.p2.save()
+        # if not p1_elo:
+        #     p1_elo = Elo.objects.create(player=self.p1, game=self.game)
+
+        # if not p2_elo:
+        #     p2_elo = Elo.objects.create(player=self.p2, game=self.game)
+
+        # self.p1_mu_before, self.p1_sigma_before = p1_elo.mu, p1_elo.sigma
+        # self.p2_mu_before, self.p2_sigma_before = p2_elo.mu, p2_elo.sigma
+
+        # self.p1.save()
+        # self.p2.save()
 
         super().save(*args, **kwargs)
 
