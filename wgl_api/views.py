@@ -222,7 +222,7 @@ class MatchDetail(generics.RetrieveUpdateDestroyAPIView):
 
 class MatchmakeView(generics.ListAPIView):
     serializer_class = MatchSerializer
-    queryset = matchmake()
+    queryset = None
 
 
 # OBSOLETE

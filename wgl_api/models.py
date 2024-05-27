@@ -40,12 +40,9 @@ class Player(ComputedFieldsModel):
 
     elos = models.ManyToManyField("Game", through="Elo")
 
-    queueing_for = models.ForeignKey(
-        "Game",
-        related_name="players_in_queue",
-        on_delete=models.CASCADE,
-        null=True,
-        blank=True,
+    in_queue = models.BooleanField(null=False, default=False)
+    queues_for = models.ManyToManyField(
+        "Game", related_name="players_in_queue", null=True, blank=True
     )
 
     def currently_playing_match(self):
