@@ -10,7 +10,6 @@ from django.db.models import (
     Value,
     IntegerField,
     Subquery,
-    Prefetch,
 )
 from django.db.models.functions import Rank
 
@@ -31,8 +30,6 @@ from .models import (
     Challenge,
     Elo,
     Score,
-    Team,
-    TeamPlayer,
     Youtube,
 )
 
@@ -43,7 +40,6 @@ from .serializers import (
     ChallengeSerializer,
     EloSerializer,
     ScoreSerializer,
-    TeamPlayerSerializer,
 )
 
 from .paginations import RankingPagination

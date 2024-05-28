@@ -136,19 +136,6 @@ class Team(ComputedFieldsModel):
 
     forfeited = models.BooleanField(null=False, default=False)
 
-    @computed(
-        models.JSONField(null=True, blank=True),
-        depends=[
-            ("teamplayer_set", ["id", "player"])  # changes when teams change
-        ],
-    )
-    def predictions(self):
-        return {
-            "place_prob": {
-                1: 1.0,
-            }
-        }
-
     @precomputed
     def save(self, *args, **kwargs):
         # TODO: i only need this because of the match places not working

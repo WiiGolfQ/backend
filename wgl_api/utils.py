@@ -32,18 +32,9 @@ def create_match(teams, game):
 
         match.teams.add(t)
 
+    generate_place_probs(match)
+
     return match
-
-
-def calculate_p1_win_prob(p1_elo, p2_elo):
-    model = MODEL
-
-    p1 = model.rating(mu=p1_elo[0], sigma=p1_elo[1])
-    p2 = model.rating(mu=p2_elo[0], sigma=p2_elo[1])
-
-    prob = model.predict_win([[p1], [p2]])[0]
-
-    return round(prob, 3)
 
 
 def ms_to_time(ms):
