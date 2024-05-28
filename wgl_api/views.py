@@ -222,7 +222,15 @@ class MatchDetail(generics.RetrieveUpdateDestroyAPIView):
 
 class MatchmakeView(generics.ListAPIView):
     serializer_class = MatchSerializer
-    queryset = None
+
+    queryset = (
+        Match.objects.none()
+    )  # this is here so there's no complaining from django
+
+    def get(self, request, *args, **kwargs):
+        matches = matchmake()
+        serializer = self.get_serializer(matches, many=True)
+        return Response(serializer.data)
 
 
 # OBSOLETE

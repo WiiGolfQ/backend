@@ -1,15 +1,8 @@
-from openskill.models import BradleyTerryFull
+from .elo import MODEL
 
 
 def create_match(teams, game):
-    from .models import Match, Team, TeamPlayer
-
-    # this is probably not necessary because you can't queue for a match if you're already playing one
-
-    # if p1.currently_playing_match:
-    #     raise Exception(f"{p1} is already playing a match")
-    # if p2.currently_playing_match:
-    #     raise Exception(f"{p2} is already playing a match")
+    from .models import Match, Team, TeamPlayer, Elo
 
     # start a match
     match = Match.objects.create(
@@ -21,21 +14,24 @@ def create_match(teams, game):
         t = Team.objects.create(match=match)
         for player in team:
             # add players to teams
-            team_player = TeamPlayer.objects.create(match=match, team=t, player=player)
-            t.players.add(team_player)
+            tp = TeamPlayer.objects.create(match=match, team=t, player=player)
+            t.players.add(tp)
+
+            # make players not queue anymore
+            player.in_queue = False
+            player.save()
+
+            # find the player's elo or create a new one if it doesn't exist
+            elo = Elo.objects.filter(player=player, game=game).first()
+            if not elo:
+                elo = Elo.objects.create(player=player, game=game)
+
+            tp.mu_before = elo.mu
+            tp.save()
+
         match.teams.add(t)
 
     return match
-
-
-STARTING_ELO = 1500
-
-MODEL = BradleyTerryFull(
-    mu=STARTING_ELO,
-    sigma=STARTING_ELO / 3,
-    beta=STARTING_ELO / 6,
-    tau=STARTING_ELO / 300,
-)
 
 
 def assign_elo(match):

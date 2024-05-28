@@ -42,7 +42,7 @@ class Player(ComputedFieldsModel):
 
     in_queue = models.BooleanField(null=False, default=False)
     queues_for = models.ManyToManyField(
-        "Game", related_name="players_in_queue", null=True, blank=True
+        "Game", related_name="players_in_queue", blank=True
     )
 
     def currently_playing_match(self):
