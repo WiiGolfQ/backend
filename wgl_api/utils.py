@@ -32,8 +32,6 @@ def create_match(teams, game):
 
         match.teams.add(t)
 
-    generate_place_probs(match)
-
     return match
 
 
