@@ -14,13 +14,15 @@ from django.db.models import (
 )
 from django.db.models.functions import Rank
 
+from django.utils import timezone
+
 from django_cte import With
 
 from rest_framework import status, permissions, generics, mixins
 from rest_framework.response import Response
 from rest_framework.exceptions import APIException
 
-from .utils import create_match, assign_elo
+from .elo import assign_elo
 
 from .models import (
     Game,
@@ -101,7 +103,7 @@ class PlayerList(generics.ListCreateAPIView):
         player.username = username
 
         if created:
-            player.created_timestamp = datetime.now()
+            player.created_timestamp = timezone.make_aware(datetime.now())
             youtube = Youtube.objects.create(
                 handle=youtube.get("handle"), video_id=youtube.get("video_id")
             )
@@ -200,9 +202,9 @@ class MatchDetail(generics.RetrieveUpdateDestroyAPIView):
         old_status = match.status
 
         # check if the status was updated to "Finished"
-        if match.status == "Finished":
+        if data.get("status") == "Finished":
             # update finish timestamp
-            match.timestamp_finished = datetime.now()
+            match.timestamp_finished = timezone.make_aware(datetime.now())
 
             if old_status == "Result contested":
                 # retroactive result change procedure, just pass for now

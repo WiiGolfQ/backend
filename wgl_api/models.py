@@ -8,6 +8,7 @@ from computedfields.models import ComputedFieldsModel, computed, precomputed
 from ranking import Ranking, COMPETITION
 
 from .utils import format_score, ms_to_time
+from .elo import calculate_elo
 
 # Create your models here.
 
@@ -92,22 +93,7 @@ class TeamPlayer(ComputedFieldsModel):
     mu_after = models.FloatField(null=True, blank=True)
 
     sigma_before = models.FloatField(null=False, default=1)
-
-    @computed(
-        models.JSONField(null=True, blank=True),
-        depends=[
-            (
-                "self",
-                ["mu_before", "sigma_before"],
-            )  # TODO: change to also depend on other teams in the match's elo
-        ],
-    )
-    def predictions(self):
-        return {
-            "elo": {
-                1: (1234, "+123"),
-            }
-        }
+    sigma_after = models.FloatField(null=True, blank=True)
 
 
 class Team(ComputedFieldsModel):
@@ -166,6 +152,7 @@ class Team(ComputedFieldsModel):
     @precomputed
     def save(self, *args, **kwargs):
         # TODO: i only need this because of the match places not working
+        # they only update if everyone has a score
         # try to get rid of it
 
         if self.pk:
@@ -207,8 +194,11 @@ class Match(ComputedFieldsModel):
     )
 
     def save(self, *args, **kwargs):
-        # TODO: this is so bad
+        # TODO: this is so bad. i shouldnt do this on every match save
+
         if self.pk:
+            # places for teams
+
             teams = self.teams.all().order_by("score")
             scores = sorted(
                 [team.score for team in teams], key=lambda x: (x is None, x)
@@ -219,6 +209,10 @@ class Match(ComputedFieldsModel):
 
             for team, rank in zip(teams, ranks):
                 Team.objects.filter(pk=team.pk).update(place=rank)
+
+            # calculate elos if everyone has a place
+            if all(team.place is not None for team in teams):
+                calculate_elo(self)
 
         # def save(
         #     self, *args, **kwargs
