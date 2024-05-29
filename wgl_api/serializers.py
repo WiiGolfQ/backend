@@ -68,7 +68,13 @@ class GameSerializer(UniqueFieldsMixin, serializers.ModelSerializer):
 
     class Meta:
         model = Game
-        fields = ["game_id", "shortcode", "game_name", "speedrun"]
+        fields = [
+            "game_id",
+            "shortcode",
+            "game_name",
+            "speedrun",
+            "require_all_livestreams",
+        ]
 
 
 class TeamPlayerSerializer(serializers.ModelSerializer):
@@ -102,7 +108,6 @@ class TeamSerializer(WritableNestedModelSerializer, serializers.ModelSerializer)
             "players",
             "score",
             "score_formatted",
-            "predictions",
         ]
 
 
