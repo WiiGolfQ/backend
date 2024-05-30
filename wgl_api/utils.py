@@ -10,8 +10,9 @@ def create_match(teams, game):
     )
 
     # add teams to match
-    for team in teams:
-        t = Team.objects.create(match=match)
+
+    for i, team in enumerate(teams):
+        t = Team.objects.create(match=match, team_num="ABCDEFGHIJKLMNOPQRSTUVWXYZ"[i])
         for player in team:
             # add players to teams
             tp = TeamPlayer.objects.create(match=match, team=t, player=player)

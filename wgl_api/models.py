@@ -85,7 +85,7 @@ class TeamPlayer(ComputedFieldsModel):
         depends=[("match", ["game"])],
     )
     def game(self):
-        return self.match.game
+        return self.match.game.game_id
 
     team = models.ForeignKey("Team", on_delete=models.CASCADE)
 
@@ -126,9 +126,9 @@ class Team(ComputedFieldsModel):
         depends=[("match", ["game"])],
     )
     def game(self):
-        return self.match.game
+        return self.match.game.game_id
 
-    team_num = models.SmallIntegerField(null=False, default=1)
+    team_num = models.CharField(null=False, max_length=1, default="?")
 
     players = models.ManyToManyField(TeamPlayer, related_name="teams")
 
