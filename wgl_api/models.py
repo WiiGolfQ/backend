@@ -7,7 +7,7 @@ from computedfields.models import ComputedFieldsModel, computed, precomputed
 
 from ranking import Ranking, COMPETITION
 
-from .utils import format_score, ms_to_time
+from .utils import format_score, ms_to_time, num_to_delta
 from .elo import calculate_elo
 
 # Create your models here.
@@ -92,6 +92,16 @@ class TeamPlayer(ComputedFieldsModel):
 
     mu_before = models.FloatField(null=False, default=1)
     mu_after = models.FloatField(null=True, blank=True)
+
+    @computed(
+        models.CharField(null=True, blank=True, max_length=8),
+        depends=[("self", ["mu_before", "mu_after"])],
+    )
+    def mu_delta(self):
+        if self.mu_before and self.mu_after:
+            return num_to_delta(self.mu_after - self.mu_before)
+        else:
+            return None
 
     sigma_before = models.FloatField(null=False, default=1)
     sigma_after = models.FloatField(null=True, blank=True)

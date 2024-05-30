@@ -52,6 +52,15 @@ def ms_to_time(ms):
         return f"{seconds:.3f}"
 
 
+def num_to_delta(num):
+    if num > 0:
+        return f"+{num}"
+    elif num == 0:
+        return "±0"
+    else:
+        return f"{num}"
+
+
 def format_score(score, game):
     if score is None:
         return None
@@ -59,9 +68,4 @@ def format_score(score, game):
     if game.speedrun:  # if the game is a speedrun category
         return ms_to_time(score)
     else:  # it is a score category
-        if score > 0:
-            return f"+{score}"
-        elif score == 0:
-            return "±0"
-        else:
-            return f"{score}"  # e.g. -18
+        return num_to_delta(score)

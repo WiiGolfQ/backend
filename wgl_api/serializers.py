@@ -92,6 +92,7 @@ class TeamPlayerSerializer(serializers.ModelSerializer):
             "video_timestamp",
             "mu_before",
             "mu_after",
+            "mu_delta",
         ]
 
 
