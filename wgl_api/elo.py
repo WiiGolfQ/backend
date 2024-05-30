@@ -18,7 +18,9 @@ def calculate_elo(match):
         ]
         for team in match.teams.all()
     ]
+
     ranks = [team.place for team in match.teams.all()]
+    print(ranks)
 
     teams = MODEL.rate(teams, ranks=ranks)
 

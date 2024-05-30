@@ -109,6 +109,7 @@ class TeamSerializer(WritableNestedModelSerializer, serializers.ModelSerializer)
             "players",
             "score",
             "score_formatted",
+            "forfeited",
         ]
 
 
@@ -134,10 +135,14 @@ class MatchSerializer(NestedUpdateMixin, serializers.ModelSerializer):
     def to_representation(self, instance):
         representation = super().to_representation(instance)
 
-        # order the teams by place and then team_num
+        # put the forfeited teams last, then order the rest by rank
+        # (not forfeited with no rank goes in between not forfeited with rank and forfeited)
         representation["teams"] = sorted(
             representation["teams"],
-            key=lambda team: ((team["place"] is None, team["place"]), team["team_num"]),
+            key=lambda team: (
+                team["forfeited"],
+                float("inf") if team["place"] is None else team["place"],
+            ),
         )
 
         return representation

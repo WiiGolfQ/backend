@@ -73,7 +73,7 @@ def matchmake():
         for match in match_to_score.keys():
             match_to_score[match] = score(players, elos, game)
 
-        while len(players) > 1:
+        while len(players) > 1 and match_to_score:
             # get the match with the highest score
             best_match = max(match_to_score, key=match_to_score.get)
 

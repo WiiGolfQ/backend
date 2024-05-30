@@ -64,7 +64,7 @@ def num_to_delta(num):
 
 def format_score(score, game):
     if score is None:
-        return None
+        return "—"
 
     if game.speedrun:  # if the game is a speedrun category
         return ms_to_time(score)

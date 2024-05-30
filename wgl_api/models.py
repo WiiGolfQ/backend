@@ -215,7 +215,8 @@ class Match(ComputedFieldsModel):
         if self.pk:
             # places for teams
 
-            teams = self.teams.all().order_by("score")
+            teams = self.teams.filter(forfeited=False).order_by("score")
+
             scores = sorted(
                 [team.score for team in teams], key=lambda x: (x is None, x)
             )  # ascending order, push None's to end
@@ -225,6 +226,19 @@ class Match(ComputedFieldsModel):
 
             for team, rank in zip(teams, ranks):
                 Team.objects.filter(pk=team.pk).update(place=rank)
+
+            forfeited = self.teams.filter(forfeited=True)
+            if forfeited:
+                place = self.teams.count() - forfeited.count() + 1  # tied for last
+                for team in forfeited:
+                    Team.objects.filter(pk=team.pk).update(place=place)
+
+            # if there is one team remaining that hasn't forfeited
+            # set it as 1st place, and mark the match as finished
+
+            if teams.count() == 1:
+                self.status = "Finished"
+                Team.objects.filter(pk=teams.first().pk).update(place=1)
 
             # calculate elos if everyone has a place
             if all(team.place is not None for team in teams):
