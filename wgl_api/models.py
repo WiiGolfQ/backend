@@ -233,15 +233,13 @@ class Match(ComputedFieldsModel):
                 for team in forfeited:
                     Team.objects.filter(pk=team.pk).update(place=place)
 
-            # if there is one team remaining that hasn't forfeited
-            # set it as 1st place, and mark the match as finished
-
+            # if there is one team remaining that hasn't forfeited, set it as 1st place
             if teams.count() == 1:
-                self.status = "Finished"
                 Team.objects.filter(pk=teams.first().pk).update(place=1)
 
             # calculate elos if everyone has a place
             if all(team.place is not None for team in teams):
+                self.status = "Waiting for agrees"
                 calculate_elo(self)
 
         # def save(

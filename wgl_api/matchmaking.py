@@ -50,7 +50,6 @@ def matchmake():
     # randomize the order of all games and then check them all
     games = Game.objects.all().order_by("?")
     for game in games:
-        # get all possible sets of players of length at least 2
         players = set(Player.objects.filter(in_queue=True, queues_for=game))
 
         if len(players) < 2:
@@ -66,12 +65,11 @@ def matchmake():
         for r in range(2, min(len(players), 8) + 1):  # min 2, max 8
             possible_matches.update(comb for comb in combinations(players, r))
 
-        match_to_score = {match: 0 for match in possible_matches}
+        match_to_score = {
+            players: score(players, elos, game) for players in possible_matches
+        }
 
         del possible_matches  # save memory
-
-        for match in match_to_score.keys():
-            match_to_score[match] = score(players, elos, game)
 
         while len(players) > 1 and match_to_score:
             # get the match with the highest score
@@ -92,7 +90,7 @@ def matchmake():
                 players.remove(player)
 
             # remove matches that contain the players in the match
-            for match in match_to_score.keys():
+            for match in set(match_to_score.keys()):
                 if any(player in match for player in best_match):
                     match_to_score.pop(match)
 
