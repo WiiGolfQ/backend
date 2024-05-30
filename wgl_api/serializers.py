@@ -165,18 +165,20 @@ class EloSerializer(serializers.ModelSerializer):
 
 class ScoreSerializer(serializers.ModelSerializer):
     player = PlayerSerializer(read_only=True)
+    game = GameSerializer(read_only=True)
 
     player_rank = serializers.IntegerField()
     overall_rank = serializers.IntegerField()
     non_obsolete_rank = serializers.IntegerField()
 
     class Meta:
-        model = Score
+        model = TeamPlayer
         fields = [
             "player",
+            "game",
+            "match",
             "score",
             "score_formatted",
-            "match",
             "overall_rank",
             "player_rank",
             "non_obsolete_rank",

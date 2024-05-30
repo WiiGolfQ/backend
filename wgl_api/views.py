@@ -30,6 +30,7 @@ from .models import (
     Challenge,
     Elo,
     Score,
+    TeamPlayer,
     Youtube,
 )
 
@@ -409,8 +410,10 @@ class ScoresDetail(generics.ListAPIView):
 
         # annotate an overall_rank and player_rank onto all scores
         scores = (
-            Score.objects.filter(game=game, match__status="Finished")
-            .order_by("score")
+            TeamPlayer.objects.filter(game=game, match__status="Finished")
+            .order_by(
+                "score", "match__timestamp_started"
+            )  # order by match start time as well in the event of a tie
             .annotate(
                 overall_rank=Window(
                     expression=Rank(),
@@ -426,7 +429,12 @@ class ScoresDetail(generics.ListAPIView):
 
         # filter by every player's best score
         # (1 per player because of ties)
-        best_scores_per_player = scores.order_by("player", "-score").distinct("player")
+        # (choose the one that happened earliest if a tie exists)
+        best_scores_per_player = scores.order_by(
+            "player",
+            "score",
+            "match__timestamp_started",  # order by match start time as well in the event of a tie
+        ).distinct("player")
 
         # annotate a non_obsolete_rank onto all best scores per player, else null
         scores = scores.annotate(

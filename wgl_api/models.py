@@ -74,8 +74,19 @@ class Game(models.Model):
 
 
 class TeamPlayer(ComputedFieldsModel):
+    # needed for ranking scores
+    objects = CTEManager()
+
     player = models.ForeignKey(Player, on_delete=models.CASCADE)
     match = models.ForeignKey("Match", on_delete=models.CASCADE)
+
+    @computed(
+        models.ForeignKey("Game", on_delete=models.CASCADE),
+        depends=[("match", ["game"])],
+    )
+    def game(self):
+        return self.match.game
+
     team = models.ForeignKey("Team", on_delete=models.CASCADE)
 
     score = models.IntegerField(null=True)
@@ -109,6 +120,13 @@ class TeamPlayer(ComputedFieldsModel):
 
 class Team(ComputedFieldsModel):
     match = models.ForeignKey("Match", on_delete=models.CASCADE)
+
+    @computed(
+        models.ForeignKey("Game", on_delete=models.CASCADE),
+        depends=[("match", ["game"])],
+    )
+    def game(self):
+        return self.match.game
 
     team_num = models.SmallIntegerField(null=False, default=1)
 
@@ -440,9 +458,6 @@ class Match(ComputedFieldsModel):
 
 
 class Score(ComputedFieldsModel):
-    # delete when custom logic for ranking is made
-    objects = CTEManager()
-
     score_id = models.AutoField(primary_key=True)
 
     player = models.ForeignKey(Player, on_delete=models.CASCADE, null=False)
