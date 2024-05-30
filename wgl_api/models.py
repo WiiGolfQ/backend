@@ -101,8 +101,8 @@ class TeamPlayer(ComputedFieldsModel):
     video_id = models.CharField(max_length=11, null=True)
     video_timestamp = models.IntegerField(null=True)
 
-    mu_before = models.FloatField(null=False, default=1)
-    mu_after = models.FloatField(null=True, blank=True)
+    mu_before = models.SmallIntegerField(null=False, default=1)
+    mu_after = models.SmallIntegerField(null=True, blank=True)
 
     @computed(
         models.CharField(null=True, blank=True, max_length=8),
@@ -171,8 +171,8 @@ class Team(ComputedFieldsModel):
         # they only update if everyone has a score
         # try to get rid of it
 
-        if self.pk:
-            self.match.save()
+        # if self.pk:
+        #     self.match.save()
         super().save(*args, **kwargs)
 
 
@@ -514,7 +514,7 @@ class Elo(models.Model):
     player = models.ForeignKey(Player, on_delete=models.CASCADE)
     game = models.ForeignKey(Game, on_delete=models.CASCADE)
 
-    mu = models.FloatField(null=False, default=STARTING_ELO)
+    mu = models.SmallIntegerField(null=False, default=STARTING_ELO)
     sigma = models.FloatField(null=False, default=STARTING_ELO / 3)
 
     def __str__(self):

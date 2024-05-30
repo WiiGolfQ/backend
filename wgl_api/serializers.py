@@ -84,7 +84,6 @@ class TeamPlayerSerializer(serializers.ModelSerializer):
         model = TeamPlayer
         fields = [
             "pk",
-            "match",
             "player",
             "score",
             "score_formatted",
@@ -95,6 +94,8 @@ class TeamPlayerSerializer(serializers.ModelSerializer):
             "mu_delta",
         ]
 
+    read_only_fields = ["score_formatted", "mu_delta"]
+
 
 class TeamSerializer(WritableNestedModelSerializer, serializers.ModelSerializer):
     players = TeamPlayerSerializer(many=True, read_only=False)
@@ -103,7 +104,6 @@ class TeamSerializer(WritableNestedModelSerializer, serializers.ModelSerializer)
         model = Team
         fields = [
             "pk",
-            "match",
             "place",
             "team_num",
             "players",
@@ -111,6 +111,8 @@ class TeamSerializer(WritableNestedModelSerializer, serializers.ModelSerializer)
             "score_formatted",
             "forfeited",
         ]
+
+    read_only_fields = ["score_formatted"]
 
 
 class MatchSerializer(NestedUpdateMixin, serializers.ModelSerializer):
