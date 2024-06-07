@@ -46,12 +46,23 @@ class Player(ComputedFieldsModel):
         "Game", related_name="players_in_queue", blank=True
     )
 
+    @computed(
+        models.ForeignKey(
+            "Match",
+            on_delete=models.CASCADE,
+            null=True,
+            blank=True,
+        ),
+        depends=[("teamplayer", ["player"]), ("teamplayer.team", ["forfeited"])],
+    )
     def currently_playing_match(self):
-        return None
-        """(
-            Match.objects.filter(active=True, p1=self).first() 
-            or Match.objects.filter(active=True, p2=self).first()
-        )"""
+        match = Match.objects.filter(
+            teams__teamplayer__player=self, teams__forfeited=False
+        ).first()
+        if match:
+            return match.match_id
+        else:
+            return None
 
     accept_challenges = models.BooleanField(null=False, default=True)
 

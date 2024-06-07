@@ -148,21 +148,12 @@ class PlayerDetail(generics.RetrieveUpdateDestroyAPIView, mixins.CreateModelMixi
         return super(PlayerDetail, self).update(request, *args, **kwargs)
 
     def update(self, request, *args, **kwargs):
-        # player = self.get_object()
+        player = self.get_object()
 
-        # # is another player queueing for this game?
-        # # if so, start a match with both players
-
-        # other_player = Player.objects.filter(queueing_for=queueing_for).first()
-
-        # if other_player is not None:
-
-        #     # start a match with both players
-        #     match = create_match(player, other_player, queueing_for_game)
-
-        #     # return the match
-        #     # TODO: we need a more permanent way to do this
-        #     return Response(MatchSerializer(match).data, status=status.HTTP_201_CREATED)
+        # check if in_queue was changed
+        if request.data.get("in_queue") is True:
+            if player.currently_playing_match is not None:
+                raise PlayerInMatch()
 
         return super(PlayerDetail, self).update(request, *args, **kwargs)
 

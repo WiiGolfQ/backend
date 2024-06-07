@@ -6,7 +6,6 @@ from .models import (
     Player,
     Game,
     Match,
-    Score,
     Challenge,
     Elo,
     Team,
@@ -24,8 +23,6 @@ class YoutubeSerializer(
 
 
 class FullPlayerSerializer(WritableNestedModelSerializer, serializers.ModelSerializer):
-    currently_playing_match = serializers.SerializerMethodField()
-
     youtube = YoutubeSerializer(read_only=False, required=False)
 
     class Meta:
@@ -42,12 +39,6 @@ class FullPlayerSerializer(WritableNestedModelSerializer, serializers.ModelSeria
             "accept_challenges",
             "banned",
         ]
-
-    def get_currently_playing_match(self, obj):
-        match = obj.currently_playing_match()
-        if match:
-            return match.match_id
-        return None
 
 
 class PlayerSerializer(WritableNestedModelSerializer, serializers.ModelSerializer):

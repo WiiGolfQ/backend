@@ -1,6 +1,3 @@
-from .elo import MODEL
-
-
 def create_match(teams, game):
     from .models import Match, Team, TeamPlayer, Elo
 
