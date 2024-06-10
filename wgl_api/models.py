@@ -88,7 +88,7 @@ class TeamPlayer(ComputedFieldsModel):
     # needed for ranking scores
     objects = CTEManager()
 
-    player = models.ForeignKey(Player, on_delete=models.CASCADE)
+    player = models.ForeignKey(Player, on_delete=models.SET_NULL, null=True)
     match = models.ForeignKey("Match", on_delete=models.CASCADE)
 
     @computed(

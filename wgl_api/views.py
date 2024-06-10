@@ -45,7 +45,10 @@ from .serializers import (
 
 from .paginations import RankingPagination
 
-from .matchmaking import matchmake
+from .matchmaking import Matchmaker
+
+
+matchmaker = Matchmaker()
 
 
 class PlayerInMatch(APIException):
@@ -140,6 +143,7 @@ class PlayerDetail(generics.RetrieveUpdateDestroyAPIView, mixins.CreateModelMixi
 
         if handle is not None:
             player.youtube.handle = handle
+
         if video_id is not None:
             player.youtube.video_id = video_id
 
@@ -154,6 +158,8 @@ class PlayerDetail(generics.RetrieveUpdateDestroyAPIView, mixins.CreateModelMixi
         if request.data.get("in_queue") is True:
             if player.currently_playing_match is not None:
                 raise PlayerInMatch()
+
+            matchmaker.add_player(player)
 
         return super(PlayerDetail, self).update(request, *args, **kwargs)
 
@@ -218,7 +224,7 @@ class MatchmakeView(generics.ListAPIView):
     )  # this is here so there's no complaining from django
 
     def get(self, request, *args, **kwargs):
-        matches = matchmake()
+        matches = matchmaker.matchmake()
         serializer = self.get_serializer(matches, many=True)
         return Response(serializer.data)
 
