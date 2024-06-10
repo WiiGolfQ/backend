@@ -51,24 +51,6 @@ from .matchmaking import Matchmaker
 matchmaker = Matchmaker()
 
 
-class PlayerInMatch(APIException):
-    status_code = 400
-    default_detail = "Player is already in a match"
-    default_code = "bad_request"
-
-
-class PlayerNotInMatch(APIException):
-    status_code = 400
-    default_detail = "Player is not in this match"
-    default_code = "bad_request"
-
-
-class DuplicateYTUsername(APIException):
-    status_code = 400
-    default_detail = "This YouTube username is already in use"
-    default_code = "bad_request"
-
-
 class PlayerList(generics.ListCreateAPIView):
     serializer_class = FullPlayerSerializer
 
@@ -79,7 +61,7 @@ class PlayerList(generics.ListCreateAPIView):
 
         if discord_id is None or username is None or youtube is None:
             return Response(
-                {"error": "Missing required fields"}, status=status.HTTP_400_BAD_REQUEST
+                "Missing required fields", status=status.HTTP_400_BAD_REQUEST
             )
 
         player, created = Player.objects.get_or_create(discord_id=discord_id)
@@ -90,14 +72,12 @@ class PlayerList(generics.ListCreateAPIView):
             .exists()
         ):
             return Response(
-                {"error": "Username already exists."},
-                status=status.HTTP_400_BAD_REQUEST,
+                "Username already exists", status=status.HTTP_400_BAD_REQUEST
             )
 
         if Youtube.objects.filter(handle=youtube.get("handle")).exists():
             return Response(
-                {"error": "YouTube username already exists."},
-                status=status.HTTP_400_BAD_REQUEST,
+                "Youtube handle already exists", status=status.HTTP_400_BAD_REQUEST
             )
 
         player.username = username
@@ -157,7 +137,9 @@ class PlayerDetail(generics.RetrieveUpdateDestroyAPIView, mixins.CreateModelMixi
         # check if in_queue was changed
         if request.data.get("in_queue") is True:
             if player.currently_playing_match is not None:
-                raise PlayerInMatch()
+                raise APIException("Player is already in a match")
+            if player.queues_for.count() == 0:
+                raise APIException("Player is not queueing for a game")
 
             matchmaker.add_player(player)
 
@@ -251,7 +233,7 @@ class ReportScore(generics.RetrieveAPIView):
 
         if score is not None:
             if player != match.p1 and player != match.p2:
-                raise PlayerNotInMatch()
+                raise APIException("Player is not in this match")
 
             player_score = Score.objects.filter(
                 player=player, game=match.game, match=match
