@@ -370,7 +370,6 @@ class ScoresDetail(generics.ListAPIView):
 
     def get_object(self):
         game_id = self.kwargs.get("game_id")
-
         return get_object_or_404(Game, game_id=game_id)
 
     def get_queryset(self):
@@ -451,3 +450,11 @@ class GameList(generics.ListAPIView):
 
     def get_queryset(self):
         return Game.objects.all()
+
+
+class GameDetail(generics.RetrieveAPIView):
+    serializer_class = GameSerializer
+
+    def get_object(self):
+        shortcode = self.kwargs.get("shortcode")
+        return get_object_or_404(Game, shortcode=shortcode)

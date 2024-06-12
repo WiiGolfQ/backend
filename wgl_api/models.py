@@ -249,8 +249,10 @@ class Match(ComputedFieldsModel):
                 Team.objects.filter(pk=teams.first().pk).update(place=1)
 
             # calculate elos if everyone has a place
-            if all(team.place is not None for team in teams):
-                self.status = "Waiting for agrees"
+            if self.active and all(team.place is not None for team in teams):
+                if self.status == "Ongoing":
+                    self.status = "Waiting for agrees"
+
                 calculate_elo(self)
 
         # def save(

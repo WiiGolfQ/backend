@@ -155,7 +155,7 @@ class EloSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Elo
-        fields = ["rank", "player", "mu"]
+        fields = ["pk", "rank", "player", "mu"]
 
     def get_rank(self, obj):
         return obj.rank
@@ -172,6 +172,7 @@ class ScoreSerializer(serializers.ModelSerializer):
     class Meta:
         model = TeamPlayer
         fields = [
+            "pk",
             "player",
             "game",
             "match",

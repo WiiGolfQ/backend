@@ -13,6 +13,7 @@ from .views import (
     # ScoresList,
     ScoresDetail,
     GameList,
+    GameDetail,
 )
 
 urlpatterns = [
@@ -28,5 +29,6 @@ urlpatterns = [
     # path("scores/", ScoresList.as_view()),
     path("scores/<int:game_id>", ScoresDetail.as_view()),
     path("game/", GameList.as_view()),
+    path("game/<str:shortcode>", GameDetail.as_view()),
     path("matchmake/", MatchmakeView.as_view()),
 ]
