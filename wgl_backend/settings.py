@@ -35,7 +35,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = get_secret("DJANGO_SECRET", None)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-debug_value = get_secret("DEBUG", True)
+debug_value = get_secret("DEBUG", "false")
 DEBUG = debug_value.lower() == "true"
 
 
