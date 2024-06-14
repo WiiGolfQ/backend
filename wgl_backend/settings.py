@@ -70,8 +70,7 @@ MIDDLEWARE = [
 ]
 
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://four.courses",
+    "*",
 ]
 
 ROOT_URLCONF = "wgl_backend.urls"
