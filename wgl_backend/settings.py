@@ -101,7 +101,7 @@ WSGI_APPLICATION = "wgl_backend.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": get_secret("POSTGRES_DB", "db"),
+        "NAME": get_secret("POSTGRES_DB", "wgq"),
         "USER": get_secret("POSTGRES_USER", "postgres"),
         "PASSWORD": get_secret("POSTGRES_PASSWORD", "postgres"),
         "HOST": get_secret("POSTGRES_HOST", "db"),
@@ -110,7 +110,7 @@ DATABASES = {
 }
 
 if DEBUG:
-    DATABASES["default"]["NAME"] = "postgres"
+    DATABASES["default"]["NAME"] = "wgq"
     DATABASES["default"]["HOST"] = "localhost"
 
 # Password validation

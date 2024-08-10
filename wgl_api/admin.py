@@ -11,7 +11,7 @@ class TeamAdmin(admin.ModelAdmin):
 admin.site.register(models.Youtube)
 admin.site.register(models.Player)
 admin.site.register(models.Match)
-admin.site.register(models.Game)
+admin.site.register(models.Category)
 admin.site.register(models.Score)
 admin.site.register(models.Elo)
 admin.site.register(models.Challenge)

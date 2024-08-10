@@ -12,8 +12,8 @@ from .views import (
     LeaderboardDetail,
     # ScoresList,
     ScoresDetail,
-    GameList,
-    GameDetail,
+    CategoryList,
+    CategoryDetail,
 )
 
 urlpatterns = [
@@ -23,12 +23,12 @@ urlpatterns = [
     path("match/<int:match_id>", MatchDetail.as_view()),
     path("challenge/", ChallengeList.as_view()),
     path("challenge/<int:challenge_id>", ChallengeDetail.as_view()),
-    path("queue/<int:game_id>", QueueList.as_view()),
+    path("queue/<int:category_id>", QueueList.as_view()),
     # path("leaderboard/", LeaderboardList.as_view()),
-    path("leaderboard/<int:game_id>", LeaderboardDetail.as_view()),
+    path("leaderboard/<int:category_id>", LeaderboardDetail.as_view()),
     # path("scores/", ScoresList.as_view()),
-    path("scores/<int:game_id>", ScoresDetail.as_view()),
-    path("game/", GameList.as_view()),
-    path("game/<str:shortcode>", GameDetail.as_view()),
+    path("scores/<int:category_id>", ScoresDetail.as_view()),
+    path("category/", CategoryList.as_view()),
+    path("category/<str:shortcode>", CategoryDetail.as_view()),
     path("matchmake/", MatchmakeView.as_view()),
 ]

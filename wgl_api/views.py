@@ -24,7 +24,7 @@ from rest_framework.exceptions import APIException
 from .elo import assign_elo
 
 from .models import (
-    Game,
+    Category,
     Match,
     Player,
     Challenge,
@@ -35,7 +35,7 @@ from .models import (
 )
 
 from .serializers import (
-    GameSerializer,
+    CategorySerializer,
     MatchSerializer,
     FullPlayerSerializer,
     ChallengeSerializer,
@@ -139,7 +139,7 @@ class PlayerDetail(generics.RetrieveUpdateDestroyAPIView, mixins.CreateModelMixi
             if player.currently_playing_match is not None:
                 raise APIException("Player is already in a match")
             if player.queues_for.count() == 0:
-                raise APIException("Player is not queueing for a game")
+                raise APIException("Player is not queueing for a category")
 
             matchmaker.add_player(player)
 
@@ -152,9 +152,9 @@ class MatchList(generics.ListCreateAPIView):
     def get_queryset(self):
         queryset = Match.objects.all()
 
-        game_id = self.request.query_params.get("game_id", None)
-        if game_id is not None:
-            queryset = queryset.filter(game=game_id)
+        category_id = self.request.query_params.get("category_id", None)
+        if category_id is not None:
+            queryset = queryset.filter(category=category_id)
 
         active = self.request.query_params.get("active", None)
         if active is not None:
@@ -236,7 +236,7 @@ class ReportScore(generics.RetrieveAPIView):
                 raise APIException("Player is not in this match")
 
             player_score = Score.objects.filter(
-                player=player, game=match.game, match=match
+                player=player, category=match.category, match=match
             ).first()
 
             # we need to check if a score object already exists,
@@ -254,7 +254,7 @@ class ReportScore(generics.RetrieveAPIView):
             else:
                 new_score = Score.objects.create(
                     player=player,
-                    game=match.game,
+                    category=match.category,
                     match=match,
                     score=score,
                 )
@@ -273,9 +273,9 @@ class ChallengeList(generics.ListCreateAPIView):
     def get_queryset(self):
         queryset = Challenge.objects.filter(accepted=None)
 
-        game_id = self.request.query_params.get("game_id", None)
-        if game_id is not None:
-            queryset = queryset.filter(game=game_id)
+        category_id = self.request.query_params.get("category_id", None)
+        if category_id is not None:
+            queryset = queryset.filter(category=category_id)
 
         return queryset
 
@@ -292,12 +292,12 @@ class QueueList(generics.ListAPIView):
     serializer_class = FullPlayerSerializer
 
     def get_object(self):
-        game_id = self.kwargs.get("game_id")
-        return get_object_or_404(Game, game_id=game_id)
+        category_id = self.kwargs.get("category_id")
+        return get_object_or_404(Category, category_id=category_id)
 
     def get_queryset(self):
-        game = self.get_object()
-        return Player.objects.filter(queueing_for=game)
+        category = self.get_object()
+        return Player.objects.filter(queueing_for=category)
 
 
 # class QueueAdd(generics.ListAPIView):
@@ -306,19 +306,19 @@ class QueueList(generics.ListAPIView):
 #     queryset = Match.objects.none()
 
 #     def get_object(self):
-#         game_id = self.kwargs.get("game_id")
+#         category_id = self.kwargs.get("category_id")
 #         discord_id = self.kwargs.get("discord_id")
 
-#         if game_id == 0:
+#         if category_id == 0:
 #             return (None, Player.objects.filter(discord_id=discord_id).first())
 
 #         return (
-#             get_object_or_404(Game, game_id=game_id),
+#             get_object_or_404(Category, category_id=category_id),
 #             Player.objects.filter(discord_id=discord_id).first(),
 #         )
 
 #     def get(self, request, *args, **kwargs):
-#         game, player = self.get_object()
+#         category, player = self.get_object()
 
 #         # check if the player is in a match
 #         player_in_match = (
@@ -330,16 +330,16 @@ class QueueList(generics.ListAPIView):
 #         if player_in_match:
 #             raise PlayerInMatch()
 
-#         player.queueing_for = game
+#         player.queueing_for = category
 #         player.save()
 
-#         # is another player queueing for this game?
+#         # is another player queueing for this category?
 #         # if so, start a match with both players
 #         # TODO: more complex matchmaking
 
 #         queuing = Player.objects.filter(queueing_for__is_null=False)
-#         for teams, game in matchmake(queuing):
-#             create_match(teams, game)
+#         for teams, category in matchmake(queuing):
+#             create_match(teams, category)
 
 #         serializer = MatchSerializer(self.get_queryset(), many=True)
 
@@ -351,14 +351,14 @@ class LeaderboardDetail(generics.ListAPIView):
     pagination_class = RankingPagination
 
     def get_object(self):
-        game_id = self.kwargs.get("game_id")
-        return get_object_or_404(Game, game_id=game_id)
+        category_id = self.kwargs.get("category_id")
+        return get_object_or_404(Category, category_id=category_id)
 
     def get_queryset(self):
-        game = self.get_object()
+        category = self.get_object()
 
         return (
-            Elo.objects.filter(game=game)
+            Elo.objects.filter(category=category)
             .annotate(rank=Window(expression=Rank(), order_by=F("mu").desc()))
             .order_by("-mu")
         )
@@ -369,11 +369,11 @@ class ScoresDetail(generics.ListAPIView):
     pagination_class = RankingPagination
 
     def get_object(self):
-        game_id = self.kwargs.get("game_id")
-        return get_object_or_404(Game, game_id=game_id)
+        category_id = self.kwargs.get("category_id")
+        return get_object_or_404(Category, category_id=category_id)
 
     def get_queryset(self):
-        game = self.get_object()
+        category = self.get_object()
 
         """
         temporary score ranking code.
@@ -388,7 +388,7 @@ class ScoresDetail(generics.ListAPIView):
 
         # annotate an overall_rank and player_rank onto all scores
         scores = (
-            TeamPlayer.objects.filter(game=game, match__status="Finished")
+            TeamPlayer.objects.filter(category=category, match__status="Finished")
             .order_by(
                 "score", "match__timestamp_started"
             )  # order by match start time as well in the event of a tie
@@ -445,16 +445,16 @@ class ScoresDetail(generics.ListAPIView):
         return scores
 
 
-class GameList(generics.ListAPIView):
-    serializer_class = GameSerializer
+class CategoryList(generics.ListAPIView):
+    serializer_class = CategorySerializer
 
     def get_queryset(self):
-        return Game.objects.all()
+        return Category.objects.all()
 
 
-class GameDetail(generics.RetrieveAPIView):
-    serializer_class = GameSerializer
+class CategoryDetail(generics.RetrieveAPIView):
+    serializer_class = CategorySerializer
 
     def get_object(self):
         shortcode = self.kwargs.get("shortcode")
-        return get_object_or_404(Game, shortcode=shortcode)
+        return get_object_or_404(Category, shortcode=shortcode)

@@ -4,7 +4,7 @@ from drf_writable_nested.mixins import NestedUpdateMixin, UniqueFieldsMixin
 
 from .models import (
     Player,
-    Game,
+    Category,
     Match,
     Challenge,
     Elo,
@@ -53,16 +53,16 @@ class PlayerSerializer(WritableNestedModelSerializer, serializers.ModelSerialize
         ]
 
 
-class GameSerializer(UniqueFieldsMixin, serializers.ModelSerializer):
+class CategorySerializer(UniqueFieldsMixin, serializers.ModelSerializer):
     shortcode = serializers.CharField(required=False)
-    game_name = serializers.CharField(required=False)
+    category_name = serializers.CharField(required=False)
 
     class Meta:
-        model = Game
+        model = Category
         fields = [
-            "game_id",
+            "category_id",
             "shortcode",
-            "game_name",
+            "category_name",
             "speedrun",
             "require_all_livestreams",
         ]
@@ -107,7 +107,7 @@ class TeamSerializer(WritableNestedModelSerializer, serializers.ModelSerializer)
 
 
 class MatchSerializer(NestedUpdateMixin, serializers.ModelSerializer):
-    game = GameSerializer(read_only=False, required=False)
+    category = CategorySerializer(read_only=False, required=False)
     teams = TeamSerializer(many=True, read_only=False, required=False)
 
     class Meta:
@@ -115,7 +115,7 @@ class MatchSerializer(NestedUpdateMixin, serializers.ModelSerializer):
         fields = [
             "match_id",
             "discord_thread_id",
-            "game",
+            "category",
             "timestamp_started",
             "timestamp_finished",
             "num_teams",
@@ -142,11 +142,11 @@ class MatchSerializer(NestedUpdateMixin, serializers.ModelSerializer):
 
 
 class ChallengeSerializer(serializers.ModelSerializer):
-    game = GameSerializer(read_only=True)
+    category = CategorySerializer(read_only=True)
 
     class Meta:
         model = Challenge
-        fields = ["challenge_id", "timestamp", "game", "challenger", "challenged"]
+        fields = ["challenge_id", "timestamp", "category", "challenger", "challenged"]
 
 
 class EloSerializer(serializers.ModelSerializer):
@@ -163,7 +163,7 @@ class EloSerializer(serializers.ModelSerializer):
 
 class ScoreSerializer(serializers.ModelSerializer):
     player = PlayerSerializer(read_only=True)
-    game = GameSerializer(read_only=True)
+    category = CategorySerializer(read_only=True)
 
     player_rank = serializers.IntegerField()
     overall_rank = serializers.IntegerField()
@@ -174,7 +174,7 @@ class ScoreSerializer(serializers.ModelSerializer):
         fields = [
             "pk",
             "player",
-            "game",
+            "category",
             "match",
             "score",
             "score_formatted",

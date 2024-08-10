@@ -1,6 +1,6 @@
 # return a queryset with good matches based on who's queuing
 from .utils import create_match
-from .models import Elo, Player, Match, Game
+from .models import Elo, Player, Match, Category
 
 from itertools import combinations
 from .elo import MODEL
@@ -15,7 +15,7 @@ class Matchmaker:
     def __init__(self):
         self.counter = 0
 
-    def score(self, players, elos, game):
+    def score(self, players, elos, category):
         """
         also for now let's make it simple and do a formula that only takes into account
 
@@ -70,26 +70,29 @@ class Matchmaker:
 
         # for now we are going to assume that all matches are 1v1
 
-        # randomize the order of all games and then check them all
-        games = Game.objects.all().order_by("?")
-        for game in games:
-            game_players = list(players.filter(queues_for=game).order_by("?"))
+        # randomize the order of all categories and then check them all
+        categories = Category.objects.all().order_by("?")
+        for category in categories:
+            category_players = list(players.filter(queues_for=category).order_by("?"))
 
-            if len(game_players) < 2:
+            if len(category_players) < 2:
                 continue
 
             elos = set()
-            for player in game_players:
-                elo = Elo.objects.filter(player=player, game=game).first()
+            for player in category_players:
+                elo = Elo.objects.filter(player=player, category=category).first()
                 if elo:
                     elos.add(elo)
 
             possible_matches = set()
-            for r in range(2, min(len(game_players), 8) + 1):  # min 2, max 8
-                possible_matches.update(comb for comb in combinations(game_players, r))
+            for r in range(2, min(len(category_players), 8) + 1):  # min 2, max 8
+                possible_matches.update(
+                    comb for comb in combinations(category_players, r)
+                )
 
             match_to_score = {
-                matchup: self.score(matchup, elos, game) for matchup in possible_matches
+                matchup: self.score(matchup, elos, category)
+                for matchup in possible_matches
             }
 
             del possible_matches  # save memory
@@ -105,12 +108,12 @@ class Matchmaker:
 
                 # create the match
                 teams = [[player] for player in best_match]
-                match = create_match(teams, game)
+                match = create_match(teams, category)
                 matches |= Match.objects.filter(match_id=match.match_id)
 
                 # remove players from the pool
                 for player in best_match:
-                    game_players.remove(player)
+                    category_players.remove(player)
 
                 # remove matches that contain the players in the match
                 for match in set(match_to_score.keys()):

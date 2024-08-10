@@ -39,11 +39,11 @@ class Player(ComputedFieldsModel):
     created_timestamp = models.DateTimeField(auto_now_add=True)
     last_active_timestamp = models.DateTimeField(auto_now_add=True)
 
-    elos = models.ManyToManyField("Game", through="Elo")
+    elos = models.ManyToManyField("Category", through="Elo")
 
     in_queue = models.BooleanField(null=False, default=False)
     queues_for = models.ManyToManyField(
-        "Game", related_name="players_in_queue", blank=True
+        "Category", related_name="players_in_queue", blank=True
     )
 
     @computed(
@@ -72,16 +72,16 @@ class Player(ComputedFieldsModel):
         return f"{self.username}"
 
 
-class Game(models.Model):
-    game_id = models.AutoField(primary_key=True)
+class Category(models.Model):
+    category_id = models.AutoField(primary_key=True)
     shortcode = models.CharField(max_length=20, null=False, unique=True)
-    game_name = models.CharField(max_length=64, null=False)
+    category_name = models.CharField(max_length=64, null=False)
 
     speedrun = models.BooleanField(null=False, default=True)
     require_all_livestreams = models.BooleanField(null=False, default=True)
 
     def __str__(self):
-        return f"{self.game_name}"
+        return f"{self.category_name}"
 
 
 class TeamPlayer(ComputedFieldsModel):
@@ -92,11 +92,11 @@ class TeamPlayer(ComputedFieldsModel):
     match = models.ForeignKey("Match", on_delete=models.CASCADE)
 
     @computed(
-        models.ForeignKey("Game", on_delete=models.CASCADE),
-        depends=[("match", ["game"])],
+        models.ForeignKey("Category", on_delete=models.CASCADE),
+        depends=[("match", ["category"])],
     )
-    def game(self):
-        return self.match.game.game_id
+    def category(self):
+        return self.match.category.category_id
 
     team = models.ForeignKey("Team", on_delete=models.CASCADE)
 
@@ -107,7 +107,7 @@ class TeamPlayer(ComputedFieldsModel):
         depends=[("self", ["score"])],  # changes when the player's score changes
     )
     def score_formatted(self):
-        return format_score(self.score, self.match.game)
+        return format_score(self.score, self.match.category)
 
     video_id = models.CharField(max_length=11, null=True)
     video_timestamp = models.IntegerField(null=True)
@@ -133,11 +133,11 @@ class Team(ComputedFieldsModel):
     match = models.ForeignKey("Match", on_delete=models.CASCADE)
 
     @computed(
-        models.ForeignKey("Game", on_delete=models.CASCADE),
-        depends=[("match", ["game"])],
+        models.ForeignKey("Category", on_delete=models.CASCADE),
+        depends=[("match", ["category"])],
     )
-    def game(self):
-        return self.match.game.game_id
+    def category(self):
+        return self.match.category.category_id
 
     team_num = models.CharField(null=False, max_length=1, default="?")
 
@@ -168,11 +168,11 @@ class Team(ComputedFieldsModel):
         models.CharField(max_length=12, null=True),
         depends=[
             ("self", ["score"]),
-            ("match", ["game"]),
+            ("match", ["category"]),
         ],
     )
     def score_formatted(self):
-        return format_score(self.score, self.match.game)
+        return format_score(self.score, self.match.category)
 
     forfeited = models.BooleanField(null=False, default=False)
 
@@ -191,7 +191,7 @@ class Match(ComputedFieldsModel):
     match_id = models.AutoField(primary_key=True)
     discord_thread_id = models.BigIntegerField(null=True, blank=True)
 
-    game = models.ForeignKey(Game, on_delete=models.CASCADE)
+    category = models.ForeignKey(Category, on_delete=models.CASCADE)
 
     timestamp_started = models.DateTimeField(auto_now_add=True)
     timestamp_finished = models.DateTimeField(null=True, blank=True)
@@ -261,18 +261,18 @@ class Match(ComputedFieldsModel):
         #     if not self.pk:  # if this is a newly created match
         #         pass  # TODO: recreate this part
 
-        #         # self.game.save()
+        #         # self.category.save()
         # self.p1.save()
         # self.p2.save()
 
-        # p1_elo = Elo.objects.filter(player=self.p1, game=self.game).first()
-        # p2_elo = Elo.objects.filter(player=self.p2, game=self.game).first()
+        # p1_elo = Elo.objects.filter(player=self.p1, category=self.category).first()
+        # p2_elo = Elo.objects.filter(player=self.p2, category=self.category).first()
 
         # if not p1_elo:
-        #     p1_elo = Elo.objects.create(player=self.p1, game=self.game)
+        #     p1_elo = Elo.objects.create(player=self.p1, category=self.category)
 
         # if not p2_elo:
-        #     p2_elo = Elo.objects.create(player=self.p2, game=self.game)
+        #     p2_elo = Elo.objects.create(player=self.p2, category=self.category)
 
         # self.p1_mu_before, self.p1_sigma_before = p1_elo.mu, p1_elo.sigma
         # self.p2_mu_before, self.p2_sigma_before = p2_elo.mu, p2_elo.sigma
@@ -287,13 +287,13 @@ class Match(ComputedFieldsModel):
     # @computed(
     #     models.IntegerField(null=True, blank=True),
     #     depends=[
-    #         ('match_scores', ['player', 'game', 'match'])
+    #         ('match_scores', ['player', 'category', 'match'])
     #     ]
     # )
     # def p1_score(self):
     #     score = Score.objects.filter(
     #         player=self.p1,
-    #         game=self.game,
+    #         category=self.category,
     #         match__match_id=self.match_id
     #     ).first()
     #     return score.score if score else None
@@ -307,7 +307,7 @@ class Match(ComputedFieldsModel):
     # def p1_score_formatted(self):
     #     score = Score.objects.filter(
     #         player=self.p1,
-    #         game=self.game,
+    #         category=self.category,
     #         match__match_id=self.match_id
     #     ).first()
 
@@ -348,13 +348,13 @@ class Match(ComputedFieldsModel):
     # @computed(
     #     models.IntegerField(null=True, blank=True),
     #     depends=[
-    #         ('match_scores', ['player', 'game', 'match'])
+    #         ('match_scores', ['player', 'category', 'match'])
     #     ]
     # )
     # def p2_score(self):
     #     score = Score.objects.filter(
     #         player=self.p2,
-    #         game=self.game,
+    #         category=self.category,
     #         match__match_id=self.match_id
     #     ).first()
     #     return score.score if score else None
@@ -368,7 +368,7 @@ class Match(ComputedFieldsModel):
     # def p2_score_formatted(self):
     #     score = Score.objects.filter(
     #         player=self.p2,
-    #         game=self.game,
+    #         category=self.category,
     #         match__match_id=self.match_id
     #     ).first()
     #     return score.score_formatted if score else None
@@ -479,14 +479,14 @@ class Match(ComputedFieldsModel):
     #         return "D"
 
     def __str__(self):
-        return f"{self.match_id}: {self.game.game_name}"
+        return f"{self.match_id}: {self.category.category_name}"
 
 
 class Score(ComputedFieldsModel):
     score_id = models.AutoField(primary_key=True)
 
     player = models.ForeignKey(Player, on_delete=models.CASCADE, null=False)
-    game = models.ForeignKey(Game, on_delete=models.CASCADE, null=False)
+    category = models.ForeignKey(Category, on_delete=models.CASCADE, null=False)
     match = models.ForeignKey(
         "Match", related_name="match_scores", on_delete=models.CASCADE, blank=True
     )
@@ -495,12 +495,12 @@ class Score(ComputedFieldsModel):
 
     @computed(
         models.CharField(max_length=12, null=False),
-        depends=[("self", ["game", "score"])],
+        depends=[("self", ["category", "score"])],
     )
     def score_formatted(self):
         score = self.score
 
-        if self.game.speedrun:
+        if self.category.speedrun:
             return ms_to_time(score)
         else:  # it is a score category
             if score > 0:
@@ -517,7 +517,7 @@ class Score(ComputedFieldsModel):
     # best_rank = models.IntegerField(null=True, blank=True)
 
     def __str__(self):
-        return f"{self.player}:{self.game}:{self.score_formatted}"
+        return f"{self.player}:{self.category}:{self.score_formatted}"
 
 
 STARTING_ELO = 1500
@@ -525,13 +525,13 @@ STARTING_ELO = 1500
 
 class Elo(models.Model):
     player = models.ForeignKey(Player, on_delete=models.CASCADE)
-    game = models.ForeignKey(Game, on_delete=models.CASCADE)
+    category = models.ForeignKey(Category, on_delete=models.CASCADE)
 
     mu = models.SmallIntegerField(null=False, default=STARTING_ELO)
     sigma = models.FloatField(null=False, default=STARTING_ELO / 3)
 
     def __str__(self):
-        return f"{self.player}:{self.game}:{'{:.1f}'.format(self.mu)} elo"
+        return f"{self.player}:{self.category}:{'{:.1f}'.format(self.mu)} elo"
 
 
 class Challenge(models.Model):
@@ -545,9 +545,9 @@ class Challenge(models.Model):
     challenged = models.ForeignKey(
         Player, on_delete=models.CASCADE, related_name="challenged"
     )
-    game = models.ForeignKey(Game, on_delete=models.CASCADE, null=False)
+    category = models.ForeignKey(Category, on_delete=models.CASCADE, null=False)
 
     accepted = models.BooleanField(null=True)
 
     def __str__(self):
-        return f"{self.challenge_id}: {self.challenger} challenged {self.challenged} to {self.game}"
+        return f"{self.challenge_id}: {self.challenger} challenged {self.challenged} to {self.category}"

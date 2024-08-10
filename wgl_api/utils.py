@@ -1,9 +1,9 @@
-def create_match(teams, game):
+def create_match(teams, category):
     from .models import Match, Team, TeamPlayer, Elo
 
     # start a match
     match = Match.objects.create(
-        game=game,
+        category=category,
     )
 
     # add teams to match
@@ -20,9 +20,9 @@ def create_match(teams, game):
             player.save()
 
             # find the player's elo or create a new one if it doesn't exist
-            elo = Elo.objects.filter(player=player, game=game).first()
+            elo = Elo.objects.filter(player=player, category=category).first()
             if not elo:
-                elo = Elo.objects.create(player=player, game=game)
+                elo = Elo.objects.create(player=player, category=category)
 
             tp.mu_before = elo.mu
             tp.sigma_before = elo.sigma
@@ -59,11 +59,11 @@ def num_to_delta(num):
         return f"{num}"
 
 
-def format_score(score, game):
+def format_score(score, category):
     if score is None:
         return "—"
 
-    if game.speedrun:  # if the game is a speedrun category
+    if category.speedrun:  # if the category is a speedrun category
         return ms_to_time(score)
     else:  # it is a score category
         return num_to_delta(score)
