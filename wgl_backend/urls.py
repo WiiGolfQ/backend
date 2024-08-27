@@ -19,7 +19,7 @@ from django.urls import path, include
 from wgl_api import urls as wgl_api_urls
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('api-auth/', include('rest_framework.urls')),
-    path('api/', include(wgl_api_urls)),
+    path("admin/", admin.site.urls),
+    path("api-auth/", include("rest_framework.urls")),
+    path("v1/", include(wgl_api_urls)),
 ]
