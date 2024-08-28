@@ -74,6 +74,12 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
 ]
 
+CSRF_TRUSTED_ORIGINS = [
+    "https://*.four.courses",
+    "http://localhost:3000",
+]
+
+
 ROOT_URLCONF = "wgl_backend.urls"
 
 TEMPLATES = [
