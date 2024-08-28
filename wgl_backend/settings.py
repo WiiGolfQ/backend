@@ -71,6 +71,7 @@ MIDDLEWARE = [
 
 CORS_ALLOWED_ORIGINS = [
     "http://four.courses",
+    "https://four.courses",
     "http://localhost:3000",
 ]
 
