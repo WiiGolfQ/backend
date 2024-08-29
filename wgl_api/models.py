@@ -57,7 +57,7 @@ class Player(ComputedFieldsModel):
     @computed(
         models.ForeignKey(
             "Match",
-            on_delete=models.CASCADE,
+            on_delete=models.SET_NULL,
             null=True,
             blank=True,
         ),
