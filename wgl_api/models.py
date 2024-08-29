@@ -1,5 +1,6 @@
 from django.db import models
 from django.core.validators import RegexValidator
+from django.core.exceptions import ValidationError
 
 from django_cte import CTEManager
 
@@ -26,7 +27,14 @@ class Youtube(models.Model):
             ),
         ],
     )
-    video_id = models.CharField(max_length=11, null=True, blank=True, unique=True)
+
+    video_id = models.CharField(max_length=11, null=True, blank=True)
+
+    # override clean method to make `video_id`s unique but allow multiple people to have no video_id
+    def clean(self):
+        if self.video_id and Youtube.objects.filter(video_id=self.video_id).exists():
+            raise ValidationError("Video ID must be unique.")
+        super().clean()
 
 
 class Player(ComputedFieldsModel):
