@@ -49,7 +49,7 @@ nano .env  #change environment variables, see below
 - `DEBUG`
   - Leave `false` in production.
  
-## Running
+### Running
 
 ```
 python3 -m venv venv
