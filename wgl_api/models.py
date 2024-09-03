@@ -61,7 +61,7 @@ class Player(ComputedFieldsModel):
             null=True,
             blank=True,
         ),
-        depends=[("teamplayer", ["player"]), ("teamplayer.team", ["forfeited"])],
+        depends=[("teamplayer", ["match__active"]), ("teamplayer.team", ["forfeited"])],
     )
     def currently_playing_match(self):
         match = Match.objects.filter(
