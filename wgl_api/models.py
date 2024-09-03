@@ -65,7 +65,9 @@ class Player(ComputedFieldsModel):
     )
     def currently_playing_match(self):
         match = Match.objects.filter(
-            teams__teamplayer__player=self, teams__forfeited=False
+            teams__teamplayer__player=self,
+            teams__forfeited=False,
+            active=True,
         ).first()
         if match:
             return match.match_id
