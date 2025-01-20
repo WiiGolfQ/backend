@@ -36,9 +36,7 @@ def assign_elo(match):
     for team in match.teams.all():
         for tp in team.players.all():
             if tp.mu_after:
-                elo = Elo.objects.filter(
-                    player=tp.player, category=match.category
-                ).first()
+                elo = Elo.objects.filter(player=tp.player, game=match.game).first()
                 elo.mu = tp.mu_after
                 elo.sigma = tp.sigma_after
                 elo.save()

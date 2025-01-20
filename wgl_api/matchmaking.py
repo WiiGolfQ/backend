@@ -80,7 +80,7 @@ class Matchmaker:
 
             elos = set()
             for player in category_players:
-                elo = Elo.objects.filter(player=player, category=category).first()
+                elo = Elo.objects.filter(player=player, game=category.game).first()
                 if elo:
                     elos.add(elo)
 

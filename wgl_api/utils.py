@@ -20,9 +20,9 @@ def create_match(teams, category):
             player.save()
 
             # find the player's elo or create a new one if it doesn't exist
-            elo = Elo.objects.filter(player=player, category=category).first()
+            elo = Elo.objects.filter(player=player, game=category.game).first()
             if not elo:
-                elo = Elo.objects.create(player=player, category=category)
+                elo = Elo.objects.create(player=player, game=category.game)
 
             tp.mu_before = elo.mu
             tp.sigma_before = elo.sigma

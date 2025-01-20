@@ -4,7 +4,6 @@ from django.shortcuts import get_object_or_404
 from django.db.models import (
     Window,
     F,
-    Q,
     Case,
     When,
     Value,
@@ -17,7 +16,7 @@ from django.utils import timezone
 
 from django_cte import With
 
-from rest_framework import status, permissions, generics, mixins
+from rest_framework import status, generics, mixins
 from rest_framework.response import Response
 from rest_framework.exceptions import APIException
 
@@ -32,6 +31,7 @@ from .models import (
     Score,
     TeamPlayer,
     Youtube,
+    Game,
 )
 
 from .serializers import (
@@ -41,6 +41,7 @@ from .serializers import (
     ChallengeSerializer,
     EloSerializer,
     ScoreSerializer,
+    GameSerializer,
 )
 
 from .paginations import RankingPagination
@@ -252,7 +253,7 @@ class ReportScore(generics.RetrieveAPIView):
                 match.save()
 
             else:
-                new_score = Score.objects.create(
+                Score.objects.create(
                     player=player,
                     category=match.category,
                     match=match,
@@ -351,14 +352,14 @@ class LeaderboardDetail(generics.ListAPIView):
     pagination_class = RankingPagination
 
     def get_object(self):
-        category_id = self.kwargs.get("category_id")
-        return get_object_or_404(Category, category_id=category_id)
+        game_id = self.kwargs.get("game_id")
+        return get_object_or_404(Game, game_id=game_id)
 
     def get_queryset(self):
-        category = self.get_object()
+        game = self.get_object()
 
         return (
-            Elo.objects.filter(category=category)
+            Elo.objects.filter(game=game)
             .annotate(rank=Window(expression=Rank(), order_by=F("mu").desc()))
             .order_by("-mu")
         )
@@ -458,3 +459,10 @@ class CategoryDetail(generics.RetrieveAPIView):
     def get_object(self):
         shortcode = self.kwargs.get("shortcode")
         return get_object_or_404(Category, shortcode=shortcode)
+
+
+class GameList(generics.ListAPIView):
+    serializer_class = GameSerializer
+
+    def get_queryset(self):
+        return Game.objects.all()

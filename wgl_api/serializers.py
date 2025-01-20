@@ -11,6 +11,7 @@ from .models import (
     Team,
     TeamPlayer,
     Youtube,
+    Game,
 )
 
 
@@ -53,6 +54,17 @@ class PlayerSerializer(WritableNestedModelSerializer, serializers.ModelSerialize
         ]
 
 
+class GameSerializer(serializers.ModelSerializer):
+    categories = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Game
+        fields = ["game_id", "game_name", "categories"]
+
+    def get_categories(self, obj):
+        return CategorySerializer(Category.objects.filter(game=obj), many=True).data
+
+
 class CategorySerializer(UniqueFieldsMixin, serializers.ModelSerializer):
     shortcode = serializers.CharField(required=False)
     category_name = serializers.CharField(required=False)
@@ -63,8 +75,10 @@ class CategorySerializer(UniqueFieldsMixin, serializers.ModelSerializer):
             "category_id",
             "shortcode",
             "category_name",
+            "game",
             "speedrun",
-            "require_all_livestreams",
+            "require_livestreams",
+            "minimum_livestreamers",
         ]
 
 

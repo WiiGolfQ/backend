@@ -47,7 +47,7 @@ class Player(ComputedFieldsModel):
     created_timestamp = models.DateTimeField(auto_now_add=True)
     last_active_timestamp = models.DateTimeField(auto_now_add=True)
 
-    elos = models.ManyToManyField("Category", through="Elo")
+    elos = models.ManyToManyField("Game", through="Elo")
 
     in_queue = models.BooleanField(null=False, default=False)
     queues_for = models.ManyToManyField(
@@ -82,16 +82,29 @@ class Player(ComputedFieldsModel):
         return f"{self.username}"
 
 
-class Category(models.Model):
+class Category(ComputedFieldsModel):
     category_id = models.AutoField(primary_key=True)
-    shortcode = models.CharField(max_length=20, null=False, unique=True)
     category_name = models.CharField(max_length=64, null=False)
 
+    game = models.ForeignKey("Game", on_delete=models.CASCADE)
+
+    shortcode = models.CharField(max_length=20, null=False, unique=True)
+
     speedrun = models.BooleanField(null=False, default=True)
-    require_all_livestreams = models.BooleanField(null=False, default=True)
+
+    require_livestreams = models.BooleanField(null=False, default=False)
+    minimum_livestreamers = models.IntegerField(null=True, blank=True, default=None)
 
     def __str__(self):
         return f"{self.category_name}"
+
+
+class Game(models.Model):
+    game_id = models.AutoField(primary_key=True)
+    game_name = models.CharField(max_length=64, null=False)
+
+    def __str__(self):
+        return f"{self.game_name}"
 
 
 class TeamPlayer(ComputedFieldsModel):
@@ -108,6 +121,13 @@ class TeamPlayer(ComputedFieldsModel):
     def category(self):
         return self.match.category.category_id
 
+    @computed(
+        models.ForeignKey("Game", on_delete=models.CASCADE),
+        depends=[("category", ["game"])],
+    )
+    def game(self):
+        return self.match.category.game.game_id
+
     team = models.ForeignKey("Team", on_delete=models.CASCADE)
 
     score = models.IntegerField(null=True)
@@ -119,8 +139,8 @@ class TeamPlayer(ComputedFieldsModel):
     def score_formatted(self):
         return format_score(self.score, self.match.category)
 
-    video_id = models.CharField(max_length=11, null=True)
-    video_timestamp = models.IntegerField(null=True)
+    video_id = models.CharField(max_length=11, null=True, blank=True)
+    video_timestamp = models.IntegerField(null=True, blank=True)
 
     mu_before = models.SmallIntegerField(null=False, default=1)
     mu_after = models.SmallIntegerField(null=True, blank=True)
@@ -202,6 +222,13 @@ class Match(ComputedFieldsModel):
     discord_thread_id = models.BigIntegerField(null=True, blank=True)
 
     category = models.ForeignKey(Category, on_delete=models.CASCADE)
+
+    @computed(
+        models.ForeignKey("Game", on_delete=models.CASCADE),
+        depends=[("category", ["game"])],
+    )
+    def game(self):
+        return self.category.game.game_id
 
     timestamp_started = models.DateTimeField(auto_now_add=True)
     timestamp_finished = models.DateTimeField(null=True, blank=True)
@@ -489,7 +516,7 @@ class Match(ComputedFieldsModel):
     #         return "D"
 
     def __str__(self):
-        return f"{self.match_id}: {self.category.category_name}"
+        return f"{self.match_id} - {self.category.category_name}"
 
 
 class Score(ComputedFieldsModel):
@@ -535,13 +562,13 @@ STARTING_ELO = 1500
 
 class Elo(models.Model):
     player = models.ForeignKey(Player, on_delete=models.CASCADE)
-    category = models.ForeignKey(Category, on_delete=models.CASCADE)
+    game = models.ForeignKey(Game, on_delete=models.CASCADE)
 
     mu = models.SmallIntegerField(null=False, default=STARTING_ELO)
     sigma = models.FloatField(null=False, default=STARTING_ELO / 3)
 
     def __str__(self):
-        return f"{self.player}:{self.category}:{'{:.1f}'.format(self.mu)} elo"
+        return f"{self.player}:{self.game}:{'{:.1f}'.format(self.mu)} elo"
 
 
 class Challenge(models.Model):
