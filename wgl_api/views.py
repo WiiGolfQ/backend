@@ -41,7 +41,7 @@ from .serializers import (
     ChallengeSerializer,
     EloSerializer,
     ScoreSerializer,
-    GameSerializer,
+    FullGameSerializer,
 )
 
 from .paginations import RankingPagination
@@ -462,7 +462,7 @@ class CategoryDetail(generics.RetrieveAPIView):
 
 
 class GameList(generics.ListAPIView):
-    serializer_class = GameSerializer
+    serializer_class = FullGameSerializer
 
     def get_queryset(self):
         return Game.objects.all()

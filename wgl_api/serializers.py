@@ -55,6 +55,12 @@ class PlayerSerializer(WritableNestedModelSerializer, serializers.ModelSerialize
 
 
 class GameSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Game
+        fields = ["game_id", "game_name"]
+
+
+class FullGameSerializer(serializers.ModelSerializer):
     categories = serializers.SerializerMethodField()
 
     class Meta:
@@ -68,6 +74,7 @@ class GameSerializer(serializers.ModelSerializer):
 class CategorySerializer(UniqueFieldsMixin, serializers.ModelSerializer):
     shortcode = serializers.CharField(required=False)
     category_name = serializers.CharField(required=False)
+    game = GameSerializer(read_only=True)
 
     class Meta:
         model = Category
