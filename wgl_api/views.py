@@ -32,6 +32,7 @@ from .models import (
     TeamPlayer,
     Youtube,
     Game,
+    Group,
 )
 
 from .serializers import (
@@ -42,6 +43,7 @@ from .serializers import (
     EloSerializer,
     ScoreSerializer,
     FullGameSerializer,
+    GroupSerializer,
 )
 
 from .paginations import RankingPagination
@@ -466,3 +468,11 @@ class GameList(generics.ListAPIView):
 
     def get_queryset(self):
         return Game.objects.all()
+
+
+class GroupDetail(generics.CreateAPIView, generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = GroupSerializer
+
+    def get_object(self):
+        group_id = self.kwargs.get("group_id")
+        return get_object_or_404(Group, pk=group_id)

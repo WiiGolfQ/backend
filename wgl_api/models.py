@@ -102,9 +102,21 @@ class Category(ComputedFieldsModel):
 class Game(models.Model):
     game_id = models.AutoField(primary_key=True)
     game_name = models.CharField(max_length=64, null=False)
+    group = models.ForeignKey("Group", on_delete=models.CASCADE, null=False)
 
     def __str__(self):
         return f"{self.game_name}"
+
+
+class Group(models.Model):
+    group_id = models.AutoField(primary_key=True)
+    name = models.CharField(max_length=64, null=False)
+
+    guild_id = models.BigIntegerField(null=False, unique=True)
+
+    queue_channel_id = models.BigIntegerField(null=True)
+    match_channel_id = models.BigIntegerField(null=True)
+    leaderboard_channel_id = models.BigIntegerField(null=True)
 
 
 class TeamPlayer(ComputedFieldsModel):

@@ -12,6 +12,7 @@ from .models import (
     TeamPlayer,
     Youtube,
     Game,
+    Group,
 )
 
 
@@ -55,9 +56,14 @@ class PlayerSerializer(WritableNestedModelSerializer, serializers.ModelSerialize
 
 
 class GameSerializer(serializers.ModelSerializer):
+    group = serializers.SerializerMethodField()
+
     class Meta:
         model = Game
         fields = ["game_id", "game_name"]
+
+    def get_group(self, obj):
+        return obj.group
 
 
 class FullGameSerializer(serializers.ModelSerializer):
@@ -203,3 +209,21 @@ class ScoreSerializer(serializers.ModelSerializer):
             "player_rank",
             "non_obsolete_rank",
         ]
+
+
+class GroupSerializer(serializers.Serializer):
+    games = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Group
+        fields = [
+            "name",
+            "guild_id",
+            "queue_channel_id",
+            "match_channel_id",
+            "leaderboard_channel_id",
+            "games",
+        ]
+
+    def get_games(self, obj):
+        return GameSerializer(Game.objects.filter(group=obj), many=True).data

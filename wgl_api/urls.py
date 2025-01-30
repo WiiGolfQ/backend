@@ -16,6 +16,7 @@ from .views import (
     CategoryList,
     CategoryDetail,
     GameList,
+    GroupDetail,
 )
 
 urlpatterns = [
@@ -34,5 +35,6 @@ urlpatterns = [
     path("category", CategoryList.as_view()),
     path("category/<str:shortcode>", CategoryDetail.as_view()),
     path("game", GameList.as_view()),
+    path("group/<int:group_id>", GroupDetail.as_view()),
     path("matchmake", MatchmakeView.as_view()),
 ]
